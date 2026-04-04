@@ -12,6 +12,9 @@ const currentFile = fileURLToPath(import.meta.url);
 const projectRoot = path.resolve(path.dirname(currentFile), "..");
 const tempRoot = path.join(projectRoot, ".pages-build");
 const outputDir = path.join(projectRoot, "dist-pages");
+const [githubOwner = "JGD2108", githubRepo = "Smoking-Diabetes-Project-"] = (
+  process.env.GITHUB_REPOSITORY || "JGD2108/Smoking-Diabetes-Project-"
+).split("/");
 
 async function setupTempProject() {
   await rm(tempRoot, { recursive: true, force: true });
@@ -29,8 +32,8 @@ async function setupTempProject() {
 
 export default defineConfig({
   output: "static",
-  site: "https://jgd2108.github.io",
-  base: "/health-pipeline-dataform",
+  site: "https://${githubOwner}.github.io",
+  base: "/${githubRepo}",
 });
 `;
 
