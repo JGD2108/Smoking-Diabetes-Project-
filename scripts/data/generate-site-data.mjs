@@ -1,7 +1,11 @@
 import { execSync } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { BigQuery } from "@google-cloud/bigquery";
+
+const currentFile = fileURLToPath(import.meta.url);
+const projectRoot = join(dirname(currentFile), "..", "..");
 
 const DEFAULT_PROJECT_ID = process.env.GCP_PROJECT_ID || process.env.GOOGLE_CLOUD_PROJECT || "pipeline-smoking-drinking";
 const DEFAULT_LOCATION = process.env.GCP_LOCATION || "us-central1";
@@ -389,9 +393,10 @@ async function main() {
     },
   };
 
-  mkdirSync(join(process.cwd(), "src", "data"), { recursive: true });
+  const outputDir = join(projectRoot, "src", "data");
+  mkdirSync(outputDir, { recursive: true });
   writeFileSync(
-    join(process.cwd(), "src", "data", "siteData.generated.json"),
+    join(outputDir, "siteData.generated.json"),
     `${JSON.stringify(siteData, null, 2)}\n`,
     "utf8",
   );

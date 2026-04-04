@@ -1,8 +1,11 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 
-const notebookPath = join(process.cwd(), "notebooks", "DMproject.ipynb");
-const outputDir = join(process.cwd(), "public", "eda");
+const currentFile = fileURLToPath(import.meta.url);
+const projectRoot = join(dirname(currentFile), "..", "..");
+const notebookPath = join(projectRoot, "analysis", "notebooks", "DMproject.ipynb");
+const outputDir = join(projectRoot, "public", "eda");
 
 const figureMap = [
   { cellIndex: 22, fileName: "sex-distribution.png" },

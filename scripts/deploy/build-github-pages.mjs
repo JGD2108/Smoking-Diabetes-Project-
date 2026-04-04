@@ -9,7 +9,7 @@ const astroPackagePath = require.resolve("astro/package.json");
 const astroBin = path.join(path.dirname(astroPackagePath), "astro.js");
 
 const currentFile = fileURLToPath(import.meta.url);
-const projectRoot = path.resolve(path.dirname(currentFile), "..");
+const projectRoot = path.resolve(path.dirname(currentFile), "..", "..");
 const tempRoot = path.join(projectRoot, ".pages-build");
 const outputDir = path.join(projectRoot, "dist-pages");
 const [githubOwner = "JGD2108", githubRepo = "Smoking-Diabetes-Project-"] = (

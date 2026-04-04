@@ -12,11 +12,14 @@ The notebook is now an exploratory artifact only. The production story in this p
 ## What is in this repo
 
 - `src/`: Astro pages, components, styles, and the live prediction API route
-- `scripts/generate-site-data.mjs`: refreshes the site snapshot from BigQuery, Workflows, and Scheduler
-- `sql/dashboard/`: reusable SQL for dashboard-facing views
+- `public/eda/`: chart assets used in the population insights section
+- `scripts/data/`: data-refresh and EDA export utilities
+- `scripts/deploy/`: deployment-oriented build scripts
+- `cloud/dataform/`: Dataform repository notes and warehouse definitions
+- `cloud/sql/`: reusable SQL for dashboard-facing views
+- `cloud/workflows/`: orchestration YAML and sample workflow payloads
 - `docs/looker-studio.md`: how to connect Looker Studio and embed it into the site
-- `workflows/health_pipeline.yaml`: current workflow definition used by the cloud pipeline
-- `notebooks/DMproject.ipynb`: the original exploratory notebook retained as historical context
+- `analysis/notebooks/DMproject.ipynb`: the original exploratory notebook retained as historical context
 
 ## Local development
 
@@ -56,6 +59,9 @@ Pages. The Pages version is intentionally static:
 
 If you want the live manual predictor, run the site locally with `npm run dev` or deploy the
 server build to a backend platform.
+
+For the GitHub Actions deployment to succeed, GitHub Pages must be enabled once in the repository
+settings and set to use `GitHub Actions` as the source.
 
 ## Dataset file
 
