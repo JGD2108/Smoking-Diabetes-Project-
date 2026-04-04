@@ -53,10 +53,10 @@ const fieldGroups = [
     ],
   },
   {
-    title: "Context used by the deployed models",
+    title: "Lifestyle context",
     fields: [
-      ["DRK_YN", "Known drinking status", "select"],
-      ["SMK_stat_type_cd", "Known smoking status", "select"],
+      ["DRK_YN", "Drinking context", "select"],
+      ["SMK_stat_type_cd", "Smoking context", "select"],
     ],
   },
 ];
@@ -391,17 +391,15 @@ const staticDrinkingSummary = summarize(
 
 <section class="playground">
   <div class="playground-intro">
-    <h3>{isStaticDeployment ? "GitHub Pages demo" : "Live BQML playground"}</h3>
+    <h3>Prediction explorer</h3>
     <p>
-      These are two separate BigQuery ML models, but both were trained with a known context input
-      from the other behavior. That is why the detailed mode asks for both known drinking and
-      known smoking status.
+      Smoking and drinking often appear together in the same health profile, so the detailed view
+      includes both lifestyle context fields to keep the results grounded in the broader picture.
     </p>
     {isStaticDeployment && (
       <p class="playground-hint">
-        GitHub Pages is static, so this deployment shows a precomputed 5-person demo. The live
-        prediction form remains available when you run the server version locally or on a backend
-        host.
+        This published version highlights a ready-made five-person comparison for a faster
+        experience.
       </p>
     )}
   </div>
@@ -409,11 +407,11 @@ const staticDrinkingSummary = summarize(
   <section class="population-panel">
     <div class="population-head">
       <div class="population-copy">
-        <p class="result-kicker">{isStaticDeployment ? "Static Demo Mode" : "Faster Demo Mode"}</p>
+        <p class="result-kicker">Quick Compare</p>
         <h3>Run a sample population of 5 people</h3>
         <p>
-          If you do not want users to fill every variable, use this curated mini-population. It
-          compares five realistic profiles and shows the most important outputs in one table.
+          Start with a curated mini-population. It compares five realistic profiles and shows the
+          most important outputs in one table.
         </p>
       </div>
       {!isStaticDeployment && (
@@ -437,7 +435,7 @@ const staticDrinkingSummary = summarize(
                 class="preset-button persona-load-button"
                 data-persona={person.id}
               >
-                Use in manual form
+                Use in form
               </button>
             )}
           </div>
@@ -448,8 +446,8 @@ const staticDrinkingSummary = summarize(
             <span>Waist {person.values.waistline}</span>
             <span>BLDS {person.values.BLDS}</span>
             <span>Gamma {person.values.gamma_GTP}</span>
-            <span>Known drinker {person.values.DRK_YN}</span>
-            <span>Known smoking {labelForSmoking(person.values.SMK_stat_type_cd)}</span>
+            <span>Drinking context {labelForDrinking(person.values.DRK_YN)}</span>
+            <span>Smoking context {labelForSmoking(person.values.SMK_stat_type_cd)}</span>
           </div>
         </article>
       ))}
@@ -458,7 +456,7 @@ const staticDrinkingSummary = summarize(
     {isStaticDeployment ? (
       <>
         <div class="playground-status">
-          Showing a precomputed sample generated from the current BigQuery ML models.
+          Showing a precomputed sample based on the current model snapshot.
         </div>
 
         <div class="population-summary-grid">
@@ -479,8 +477,8 @@ const staticDrinkingSummary = summarize(
                 <tr>
                   <th>Profile</th>
                   <th>Key inputs</th>
-                  <th>Known drinking</th>
-                  <th>Known smoking</th>
+                  <th>Drinking context</th>
+                  <th>Smoking context</th>
                   <th>Predicted smoking</th>
                   <th>Smoking confidence</th>
                   <th>Predicted drinking</th>
@@ -529,12 +527,12 @@ const staticDrinkingSummary = summarize(
   <section class="manual-panel">
     <div class="manual-head">
       <div>
-        <p class="result-kicker">Detailed Mode</p>
-        <h3>Manual individual prediction</h3>
+        <p class="result-kicker">Detailed View</p>
+        <h3>Explore an individual profile</h3>
       </div>
       {!isStaticDeployment && (
         <div class="preset-row">
-          <button type="button" class="preset-button" data-preset="baseline">Cloud sample</button>
+          <button type="button" class="preset-button" data-preset="baseline">Typical profile</button>
           <button type="button" class="preset-button" data-preset="lowerRisk">
             Lower-risk profile
           </button>
@@ -547,14 +545,14 @@ const staticDrinkingSummary = summarize(
 
     {isStaticDeployment ? (
       <article class="notes-card playground-disabled">
-        <h3>Live form disabled on GitHub Pages</h3>
+        <h3>Expanded interaction is available in the live version</h3>
         <p>
-          GitHub Pages cannot run the Astro server endpoint used by <code>/api/predict</code>, so
-          this static deployment shows the sample population only.
+          This published version focuses on the five-profile comparison so visitors can review the
+          results quickly and clearly.
         </p>
         <p>
-          Run <code>npm run dev</code> locally or deploy the server build to a backend platform if
-          you want the manual live predictor.
+          The full interactive form remains available in the live app environment used for direct
+          prediction requests.
         </p>
       </article>
     ) : (
@@ -593,10 +591,10 @@ const staticDrinkingSummary = summarize(
           ))}
 
           <div class="playground-actions">
-            <button type="submit" class="primary-button">Run live prediction</button>
+            <button type="submit" class="primary-button">Run prediction</button>
             <p class="playground-hint">
-              The quick population demo above is easier for users. Keep this detailed form for
-              teacher review, testing, or case-by-case analysis.
+              The quick comparison above is the easiest way to start. Use this detailed form for
+              case-by-case exploration.
             </p>
           </div>
         </form>
@@ -774,8 +772,8 @@ const staticDrinkingSummary = summarize(
               <tr>
                 <th>Profile</th>
                 <th>Key inputs</th>
-                <th>Known drinking</th>
-                <th>Known smoking</th>
+                <th>Drinking context</th>
+                <th>Smoking context</th>
                 <th>Predicted smoking</th>
                 <th>Smoking confidence</th>
                 <th>Predicted drinking</th>
@@ -800,13 +798,13 @@ const staticDrinkingSummary = summarize(
         const person = samplePopulation.find((entry) => entry.id === button.dataset.persona);
         if (!person) return;
         applyPreset(person.values);
-        setStatus(`Loaded ${person.name} into the manual form.`);
+        setStatus(`Loaded ${person.name} into the detailed form.`);
         form.scrollIntoView({ behavior: "smooth", block: "start" });
       });
     });
 
     runPopulationButton?.addEventListener("click", async () => {
-      setPopulationStatus("Running 5 live BigQuery ML predictions...");
+      setPopulationStatus("Running predictions for 5 sample profiles...");
       runPopulationButton.disabled = true;
       populationResults.hidden = true;
       populationResults.innerHTML = "";
@@ -834,7 +832,7 @@ const staticDrinkingSummary = summarize(
 
     form.addEventListener("submit", async (event) => {
       event.preventDefault();
-      setStatus("Running BigQuery ML prediction...");
+      setStatus("Running prediction...");
       results.innerHTML = "";
 
       const payload = Object.fromEntries(new FormData(form).entries());

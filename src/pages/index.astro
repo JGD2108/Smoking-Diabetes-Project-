@@ -46,6 +46,42 @@ function withBase(path) {
   const cleanBase = basePath.endsWith("/") ? basePath : `${basePath}/`;
   return `${cleanBase}${String(path).replace(/^\/+/, "")}`;
 }
+
+function formatTimestamp(value, fallback = "Recent update") {
+  if (!value || value === "[object Object]") return fallback;
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? String(value) : parsed.toLocaleString();
+}
+
+function formatSchedule(value) {
+  if (!value) return "Scheduled";
+  const knownSchedules = {
+    "0 3 * * 1": "Weekly",
+  };
+  return knownSchedules[value] ?? value;
+}
+
+function formatCheckName(value) {
+  const labels = {
+    unique_row_id_check: "Duplicate record check",
+    rowcount_check: "Row volume check",
+    valid_values_check: "Valid values check",
+  };
+
+  return labels[value] ?? String(value).replace(/_/g, " ");
+}
+
+function formatAlert(value) {
+  if (value?.includes("Workflow failure")) {
+    return "Automatic monitoring flags any failed refresh.";
+  }
+
+  if (value?.includes("Missing scheduled run")) {
+    return "Automatic monitoring alerts the team if a scheduled refresh is missed.";
+  }
+
+  return value;
+}
 ---
 
 <BaseLayout title={siteMeta.title} description={siteMeta.description}>
@@ -54,15 +90,15 @@ function withBase(path) {
       <span class="brand-mark">SD</span>
       <span>
         <strong>Smoking and Drinking Prediction</strong>
-        <small>Data Mining course project</small>
+        <small>Interactive health insights</small>
       </span>
     </a>
 
     <nav class="site-nav">
       <a href="#overview">Overview</a>
       <a href="#dataset">Dataset</a>
-      <a href="#eda">EDA</a>
-      <a href="#pipeline">Pipeline</a>
+      <a href="#eda">Insights</a>
+      <a href="#pipeline">System</a>
       <a href="#models">Models</a>
       <a href="#dashboard">Dashboard</a>
       <a href="#playground">Playground</a>
@@ -75,16 +111,15 @@ function withBase(path) {
   <main id="top">
     <section class="hero">
       <div class="hero-copy">
-        <p class="eyebrow">Data Mining Course Project / Editorial Redesign</p>
+        <p class="eyebrow">Behavior and Health Insights</p>
         <h1>Smoking and Drinking Prediction</h1>
         <p class="hero-lead">
-          A cleaner front-end for the notebook story, the cloud pipeline, and the live dashboard.
+          Explore how body signals relate to smoking and drinking patterns.
         </p>
         <p class="hero-body">
-          This version keeps the technical depth of the project but presents it with a calmer,
-          more portfolio-style layout inspired by your reference site: stronger typography,
-          clearer section rhythm, and your public Looker Studio report embedded directly into the
-          experience.
+          This experience combines population-level analysis, interactive model views, and a
+          multi-page dashboard in one place, making it easier to move from broad health patterns
+          to concrete profile-based examples.
         </p>
 
         <div class="hero-links">
@@ -107,7 +142,7 @@ function withBase(path) {
           <MetricCard
             label="Raw dataset rows"
             value={siteData.dataset.observations.toLocaleString()}
-            note="Source table in BigQuery"
+            note="Anonymized health records"
           />
           <MetricCard
             label="Rows preserved in staging"
@@ -115,25 +150,24 @@ function withBase(path) {
             note={`${siteData.cloudPipeline.stageCounts.staging.toLocaleString()} clean rows`}
           />
           <MetricCard
-            label="BQML models deployed"
+            label="Predictive models"
             value="2"
             note="Smoking and drinking classifiers"
           />
           <MetricCard
-            label="Workflow cadence"
-            value={siteData.project.schedulerJobs[0]?.schedule ?? "Weekly"}
-            note={siteData.project.schedulerJobs[0]?.timeZone ?? "Scheduler active"}
+            label="Refresh cadence"
+            value={formatSchedule(siteData.project.schedulerJobs[0]?.schedule)}
+            note={siteData.project.schedulerJobs[0]?.state ?? "Automatic refresh"}
           />
         </div>
 
         <div class="hero-note">
           <p>
-            <strong>Dashboard ready.</strong> Your public Looker Studio report is embedded below,
-            and the internal page navigation stays available inside the iframe.
+            <strong>Start anywhere.</strong> Browse the embedded dashboard, inspect the population
+            charts, or compare individual profiles in the prediction explorer below.
           </p>
           <p class="hero-note-meta">
-            Latest workflow run: {latestRun?.pipelineRunId ?? "workflow_run_001"} -{" "}
-            {latestRun?.finalStatus ?? "SUCCESS"}
+            Latest system status: {latestRun?.finalStatus ?? "SUCCESS"}
           </p>
         </div>
       </div>
@@ -142,10 +176,10 @@ function withBase(path) {
     <div class="content-shell">
       <aside class="page-outline" aria-label="Page outline">
         <p class="outline-label">On this page</p>
-        <a href="#overview">Project focus</a>
+        <a href="#overview">Overview</a>
         <a href="#dataset">Dataset</a>
-        <a href="#eda">EDA</a>
-        <a href="#pipeline">Pipeline</a>
+        <a href="#eda">Insights</a>
+        <a href="#pipeline">System</a>
         <a href="#models">Models</a>
         <a href="#dashboard">Dashboard</a>
         <a href="#playground">Playground</a>
@@ -155,36 +189,33 @@ function withBase(path) {
       <div class="content-stack">
         <section id="overview" class="section">
           <SectionHeading
-            kicker="Project Focus"
-            title="From notebook analysis to an end-to-end cloud pipeline"
-            intro="The first version of this project lived in Colab and a Jupyter notebook. The current version stages data in BigQuery, validates it with Dataform, trains models in BigQuery ML, automates runs with Workflows and Cloud Scheduler, and records metrics in monitoring tables."
+            kicker="Overview"
+            title="A clearer view of smoking and drinking patterns"
+            intro="This site brings together health indicators, behavior-linked trends, and predictive outputs so visitors can understand how everyday body signals relate to smoking and drinking outcomes."
           />
 
           <div class="insight-grid">
             <article class="insight-card">
-              <h3>Notebook baseline</h3>
+              <h3>Population scale</h3>
               <p>
-                The original notebook explored 991,346 observations and trained Random Forest
-                models locally after removing{" "}
-                {siteData.notebookBaseline.rowsRemovedByIqr.toLocaleString()} rows with a blanket
-                IQR filter.
+                The dataset covers {siteData.dataset.observations.toLocaleString()} health records,
+                giving the analysis a broad view of how biometric and lifestyle signals move
+                together across many different profiles.
               </p>
             </article>
             <article class="insight-card">
-              <h3>Cloud-first pipeline</h3>
+              <h3>Behavior signals</h3>
               <p>
-                The cloud pipeline keeps{" "}
-                {siteData.cloudPipeline.stageCounts.staging.toLocaleString()} rows, removes only{" "}
-                {siteData.cloudPipeline.rowsDroppedInStaging.toLocaleString()} rows, passes all
-                current Dataform checks, and refreshes predictions in BigQuery.
+                Waistline, blood pressure, glucose, cholesterol, triglycerides, and liver markers
+                all contribute to recognizable patterns that help explain smoking and drinking
+                behavior.
               </p>
             </article>
             <article class="insight-card">
-              <h3>Presentable delivery</h3>
+              <h3>Interactive exploration</h3>
               <p>
-                This Astro site packages the exploratory story, operational pipeline, and a live
-                prediction playground in one place so the project reads like a finished portfolio
-                piece.
+                Visitors can move from big-picture charts to a multi-page dashboard and then into
+                profile-based prediction examples without needing any technical background.
               </p>
             </article>
           </div>
@@ -194,7 +225,7 @@ function withBase(path) {
           <SectionHeading
             kicker="Dataset"
             title="Health signals from the Korean National Health Insurance Service"
-            intro="The source dataset contains anonymized health indicators and target labels for smoking status and drinking behavior. It is rich enough for both exploratory analysis and supervised learning."
+            intro="The dataset brings together anonymized health measurements and lifestyle labels, making it possible to study both broad population patterns and profile-level prediction outcomes."
           />
 
           <div class="metric-grid">
@@ -240,9 +271,9 @@ function withBase(path) {
 
         <section id="eda" class="section">
           <SectionHeading
-            kicker="Exploratory Analysis"
-            title="The EDA section now uses the actual notebook figures"
-            intro="These plots were extracted from the original notebook outputs and kept as the exploratory source of truth for the website. The cloud pipeline story starts later, after the analysis phase."
+            kicker="Population Insights"
+            title="Key patterns across the population"
+            intro="These charts highlight how age, sex, and biometric measures vary across smoking and drinking groups, helping visitors spot the most meaningful patterns at a glance."
           />
 
           <div class="eda-grid">
@@ -264,41 +295,38 @@ function withBase(path) {
 
           <div class="compare-grid">
             <article class="compare-card">
-              <p class="eyebrow">Cleaning in the notebook</p>
-              <h3>IQR removal was visually useful, but too destructive for production</h3>
+              <p class="eyebrow">Population coverage</p>
+              <h3>The analysis spans a broad range of health profiles</h3>
               <p>
-                The notebook version dropped{" "}
-                {siteData.notebookBaseline.rowsRemovedByIqr.toLocaleString()} rows after flagging
-                any numeric outlier. That cut the dataset down to{" "}
-                {siteData.notebookBaseline.rowsAfterIqrCleaning.toLocaleString()} rows.
+                With {siteData.dataset.observations.toLocaleString()} records and{" "}
+                {siteData.dataset.variables} variables, the dataset captures meaningful variation
+                across demographics, vitals, and lab measurements.
               </p>
             </article>
             <article class="compare-card emphasis">
-              <p class="eyebrow">Cleaning in the cloud pipeline</p>
-              <h3>Dataform keeps almost the full table and removes only explainable issues</h3>
+              <p class="eyebrow">Data consistency</p>
+              <h3>Only a very small share of records are excluded during quality screening</h3>
               <p>
-                The current cloud staging table keeps{" "}
-                {siteData.cloudPipeline.stageCounts.staging.toLocaleString()} rows and only
-                removes {siteData.cloudPipeline.rowsDroppedInStaging.toLocaleString()} records,
-                mostly exact duplicates and validation failures.
+                The working dataset retains{" "}
+                {siteData.cloudPipeline.stageCounts.staging.toLocaleString()} rows, preserving
+                nearly the full population while removing clear duplicates and invalid records.
               </p>
             </article>
           </div>
 
           <article class="notes-card">
-            <h3>Notebook role in the final project</h3>
+            <h3>How to read these charts</h3>
             <ul class="note-list">
               <li>
-                The notebook is now treated as an exploratory artifact, not the production
-                pipeline.
+                These visuals show population-level patterns rather than individual medical advice.
               </li>
               <li>
-                Its figures power this EDA section, while the cloud pipeline handles ingestion,
-                transformation, training, and scheduling.
+                Differences become more meaningful when several indicators move in the same
+                direction.
               </li>
               <li>
-                This split keeps the analysis authentic without pretending the notebook is still
-                running the production system.
+                Use the scenario table and prediction explorer below to translate these patterns
+                into concrete examples.
               </li>
             </ul>
           </article>
@@ -306,9 +334,9 @@ function withBase(path) {
 
         <section id="pipeline" class="section">
           <SectionHeading
-            kicker="Cloud Pipeline"
-            title="The project now runs as a BigQuery and Workflows pipeline"
-            intro="This is the actual implemented path in GCP today. The site data below is pulled from the current project snapshot, not guessed from the original plan."
+            kicker="System Overview"
+            title="How the data and predictions stay current"
+            intro="Behind the scenes, the project organizes records, quality checks, model refreshes, and reporting into a scheduled flow so the experience remains consistent over time."
           />
 
           <div class="flow-card">
@@ -322,38 +350,38 @@ function withBase(path) {
 
           <div class="metric-grid">
             <MetricCard
-              label="Workflow"
+              label="Refresh workflow"
               value={siteData.project.workflow?.name ?? "health-pipeline"}
               note={siteData.project.workflow?.state ?? "ACTIVE"}
             />
             <MetricCard
-              label="Latest run"
-              value={latestRun?.pipelineRunId ?? "workflow_run_001"}
-              note={latestRun?.finalStatus ?? "SUCCESS"}
+              label="Latest refresh"
+              value={latestRun?.finalStatus ?? "SUCCESS"}
+              note={formatTimestamp(latestRun?.runTimestamp, "Most recent run")}
             />
             <MetricCard
-              label="Duplicates removed"
+              label="Records removed"
               value={siteData.cloudPipeline.duplicatesRemoved.toLocaleString()}
-              note="from the latest pipeline run"
+              note="duplicate or invalid entries"
             />
             <MetricCard
-              label="Model promotion"
+              label="Model status"
               value={latestPromotion?.status ?? "APPROVED"}
-              note={latestPromotion?.modelName ?? "smoking_rf_model"}
+              note={latestPromotion?.notes ?? "Meets current quality threshold"}
             />
           </div>
 
           <div class="chart-grid two-up">
             <article class="chart-card">
               <div class="chart-head">
-                <h3>Latest pipeline runs</h3>
+                <h3>Recent refresh history</h3>
               </div>
               <div class="timeline-list">
-                {siteData.cloudPipeline.pipelineRuns.map((run) => (
+                {siteData.cloudPipeline.pipelineRuns.map((run, index) => (
                   <div class="timeline-item">
                     <div>
-                      <strong>{run.pipelineRunId}</strong>
-                      <p>{run.runTimestamp}</p>
+                      <strong>Refresh {index + 1}</strong>
+                      <p>{formatTimestamp(run.runTimestamp, run.pipelineRunId)}</p>
                     </div>
                     <p>
                       {run.stagingRowCount.toLocaleString()} clean rows - {run.finalStatus}
@@ -365,14 +393,14 @@ function withBase(path) {
 
             <article class="chart-card">
               <div class="chart-head">
-                <h3>Data quality checks</h3>
+                <h3>Validation checks</h3>
               </div>
               <div class="timeline-list">
                 {siteData.cloudPipeline.dataQualityChecks.map((check) => (
                   <div class="timeline-item">
                     <div>
-                      <strong>{check.name}</strong>
-                      <p>{check.timestamp}</p>
+                      <strong>{formatCheckName(check.name)}</strong>
+                      <p>{formatTimestamp(check.timestamp, "Latest validation")}</p>
                     </div>
                     <p>{check.status} - {check.failedRows} failed rows</p>
                   </div>
@@ -382,18 +410,18 @@ function withBase(path) {
           </div>
 
           <article class="notes-card">
-            <h3>Operational notes</h3>
+            <h3>Reliability notes</h3>
             <ul class="note-list">
-              {siteData.project.alerting.map((note) => <li>{note}</li>)}
+              {siteData.project.alerting.map((note) => <li>{formatAlert(note)}</li>)}
             </ul>
           </article>
         </section>
 
         <section id="models" class="section">
           <SectionHeading
-            kicker="Models"
-            title="Notebook baselines versus cloud-trained BigQuery ML models"
-            intro="The cloud version shifts the project from local RandomForest training to warehouse-native BQML training. That gives the project a more reproducible path and a live prediction surface."
+            kicker="Model Insights"
+            title="How the predictors read smoking and drinking patterns"
+            intro="This section summarizes overall model performance, highlights the strongest input signals, and shows where predictions are most accurate."
           />
 
           <div class="chart-grid two-up">
@@ -403,22 +431,22 @@ function withBase(path) {
               </div>
               <div class="model-metrics">
                 <div>
-                  <p class="metric-label">Notebook accuracy</p>
+                  <p class="metric-label">Baseline accuracy</p>
                   <strong>{(siteData.notebookBaseline.smoking.accuracy * 100).toFixed(1)}%</strong>
                 </div>
                 <div>
-                  <p class="metric-label">Cloud accuracy</p>
+                  <p class="metric-label">Current accuracy</p>
                   <strong>{(latestSmoking.accuracy * 100).toFixed(1)}%</strong>
                   <small>
                     {metricDelta(latestSmoking.accuracy, siteData.notebookBaseline.smoking.accuracy)}
                   </small>
                 </div>
                 <div>
-                  <p class="metric-label">Notebook F1</p>
+                  <p class="metric-label">Baseline F1</p>
                   <strong>{siteData.notebookBaseline.smoking.f1.toFixed(3)}</strong>
                 </div>
                 <div>
-                  <p class="metric-label">Cloud F1</p>
+                  <p class="metric-label">Current F1</p>
                   <strong>{latestSmoking.f1.toFixed(3)}</strong>
                   <small>{metricDelta(latestSmoking.f1, siteData.notebookBaseline.smoking.f1)}</small>
                 </div>
@@ -431,11 +459,11 @@ function withBase(path) {
               </div>
               <div class="model-metrics">
                 <div>
-                  <p class="metric-label">Notebook accuracy</p>
+                  <p class="metric-label">Baseline accuracy</p>
                   <strong>{(siteData.notebookBaseline.drinking.accuracy * 100).toFixed(1)}%</strong>
                 </div>
                 <div>
-                  <p class="metric-label">Cloud accuracy</p>
+                  <p class="metric-label">Current accuracy</p>
                   <strong>{(latestDrinking.accuracy * 100).toFixed(1)}%</strong>
                   <small>
                     {metricDelta(
@@ -445,11 +473,11 @@ function withBase(path) {
                   </small>
                 </div>
                 <div>
-                  <p class="metric-label">Notebook F1</p>
+                  <p class="metric-label">Baseline F1</p>
                   <strong>{siteData.notebookBaseline.drinking.f1.toFixed(3)}</strong>
                 </div>
                 <div>
-                  <p class="metric-label">Cloud F1</p>
+                  <p class="metric-label">Current F1</p>
                   <strong>{latestDrinking.f1.toFixed(3)}</strong>
                   <small>
                     {metricDelta(latestDrinking.f1, siteData.notebookBaseline.drinking.f1)}
@@ -486,7 +514,7 @@ function withBase(path) {
           </div>
 
           <article class="notes-card">
-            <h3>What the current model system implies</h3>
+            <h3>How to interpret the model results</h3>
             <ul class="note-list">
               {modelContextNotes.map((note) => <li>{note}</li>)}
             </ul>
@@ -496,37 +524,37 @@ function withBase(path) {
         <section id="dashboard" class="section">
           <SectionHeading
             kicker="Dashboard"
-            title="Embedded Looker Studio report plus pipeline health summary"
-            intro="Your public Looker Studio report is embedded below. The report keeps its own page navigation, so the multiple dashboard pages stay accessible without sending visitors away from the site."
+            title="Interactive dashboard and performance snapshot"
+            intro="Use the embedded report to explore multiple views of the project without leaving the site."
           />
 
           <DashboardEmbed />
 
           <div class="metric-grid">
             <MetricCard
-              label="Latest smoking accuracy"
+              label="Smoking accuracy"
               value={`${(latestSmoking.accuracy * 100).toFixed(1)}%`}
-              note={latestSmoking.pipelineRunId}
+              note="current monitored model"
             />
             <MetricCard
-              label="Latest drinking accuracy"
+              label="Drinking accuracy"
               value={`${(latestDrinking.accuracy * 100).toFixed(1)}%`}
-              note={latestDrinking.pipelineRunId}
+              note="current monitored model"
             />
             <MetricCard
-              label="Workflow schedule"
-              value={siteData.project.schedulerJobs[0]?.schedule ?? "0 3 * * 1"}
-              note={siteData.project.schedulerJobs[0]?.name ?? "health-pipeline-weekly"}
+              label="Refresh cadence"
+              value={formatSchedule(siteData.project.schedulerJobs[0]?.schedule)}
+              note={siteData.project.schedulerJobs[0]?.state ?? "ENABLED"}
             />
             <MetricCard
-              label="Promoted models"
+              label="Tracked models"
               value={String(siteData.cloudPipeline.promotions.length)}
-              note="current monitoring table entries"
+              note="current monitoring entries"
             />
           </div>
 
           <article class="notes-card">
-            <h3>Dashboard notes</h3>
+            <h3>Ways to use the dashboard</h3>
             <ul class="note-list">
               {dashboardNotes.map((note) => <li>{note}</li>)}
             </ul>
@@ -535,9 +563,9 @@ function withBase(path) {
 
         <section id="playground" class="section">
           <SectionHeading
-            kicker="Model Playground"
-            title="Run live predictions against the deployed BigQuery ML models"
-            intro="This playground uses an Astro API route that queries ML.PREDICT in your GCP project. It is the most direct way to show that the cloud models are functioning."
+            kicker="Prediction Explorer"
+            title="Compare individual profiles"
+            intro="Use the sample population for a quick side-by-side view, with an expanded profile form available in the full live experience."
           />
 
           <ModelPlayground defaults={siteData.models.playgroundDefaults} />
@@ -547,7 +575,7 @@ function withBase(path) {
           <SectionHeading
             kicker="References"
             title="Research and source material"
-            intro="The narrative on this site combines the notebook findings, the cloud implementation, and supporting literature around smoking and drinking prediction from biometric signals."
+            intro="Selected research and source material that support the patterns and modeling choices presented throughout the site."
           />
 
           <div class="references-list">
@@ -560,8 +588,8 @@ function withBase(path) {
 
   <footer class="site-footer">
     <p>
-      Built with Astro, BigQuery ML, Workflows, Cloud Scheduler, and the original exploratory
-      notebook.
+      Smoking and Drinking Prediction: an interactive view of health patterns, predictive signals,
+      and dashboard reporting.
     </p>
     <p>Snapshot generated on {new Date(siteData.generatedAt).toLocaleString()}.</p>
   </footer>

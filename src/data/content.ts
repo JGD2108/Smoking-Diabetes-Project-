@@ -1,7 +1,7 @@
 export const siteMeta = {
   title: "Smoking and Drinking Prediction",
   description:
-    "An Astro site that documents the exploratory analysis, GCP migration, BQML modeling, and monitoring for the health pipeline project.",
+    "An interactive experience for exploring health patterns, predictive signals, and dashboard insights around smoking and drinking behavior.",
 };
 
 export const lookerStudioReportUrl =
@@ -21,81 +21,73 @@ export const projectLinks = [
     label: "Looker Studio Report",
     href: lookerStudioReportUrl,
   },
-  {
-    label: "BigQuery ML Docs",
-    href: "https://cloud.google.com/bigquery/docs/reference/standard-sql/bigqueryml-syntax-create-random-forest",
-  },
-  {
-    label: "Workflows Docs",
-    href: "https://cloud.google.com/workflows/docs",
-  },
 ];
 
 export const architectureFlow = [
-  "Cloud Storage landing bucket",
-  "BigQuery raw table",
-  "Dataform staging + assertions",
-  "Feature tables in BigQuery",
-  "BigQuery ML training",
-  "Prediction + monitoring tables",
-  "Workflows orchestration",
-  "Cloud Scheduler automation",
+  "Health screening records",
+  "Quality screening",
+  "Feature preparation",
+  "Behavior modeling",
+  "Prediction summaries",
+  "Monitoring checks",
+  "Scheduled refreshes",
+  "Interactive reporting",
 ];
 
 export const modelContextNotes = [
-  "The deployed cloud models are not the same execution path as the original notebook. They retrain in BigQuery ML after Dataform refreshes the feature tables.",
-  "The current smoking model uses drinking status as a feature, and the drinking model uses smoking status as a feature. The playground exposes those context inputs explicitly so the model behavior is truthful.",
-  "The cloud pipeline keeps nearly the full dataset instead of dropping more than a third of rows with a blanket IQR filter.",
+  "Smoking and drinking patterns are shown side by side so visitors can compare how both behaviors relate to the same health profile.",
+  "The detailed form includes lifestyle context fields to keep each prediction aligned with the information already known about a person.",
+  "Predictions are directional estimates based on population patterns and should be interpreted as behavioral signals, not as medical diagnoses.",
 ];
 
 export const dashboardNotes = [
-  "The site now ships with the public Looker Studio report already wired into the dashboard section.",
-  "Visitors can move across the report's multiple pages inside the embed or open the same report in a new tab.",
-  "The surrounding cards still summarize the latest pipeline snapshot so the report and the project narrative stay connected.",
+  "Browse multiple dashboard pages directly inside the site without losing context.",
+  "Open the report in a new tab whenever you want more room for filtering, comparison, or presentation.",
+  "The surrounding summary cards highlight model accuracy, refresh cadence, and overall system status at a glance.",
 ];
 
 export const edaFigures = [
   {
     src: "eda/sex-distribution.png",
-    alt: "Notebook plot showing the sex distribution in the dataset.",
+    alt: "Chart showing the sex distribution in the dataset.",
     title: "Sex distribution",
     summary:
       "The dataset is relatively balanced by sex, with a slight male majority. That makes the exploratory comparisons more trustworthy across the two groups.",
   },
   {
     src: "eda/smoking-distribution.png",
-    alt: "Notebook bar chart showing smoking status counts.",
+    alt: "Bar chart showing smoking status counts.",
     title: "Smoking status distribution",
     summary:
       "Most individuals are in the never-smoked class, while current and former smokers remain large enough to support supervised classification.",
   },
   {
     src: "eda/drinking-distribution.png",
-    alt: "Notebook bar chart showing drinking status counts.",
+    alt: "Bar chart showing drinking status counts.",
     title: "Drinking status distribution",
     summary:
       "Drinking is almost perfectly balanced between drinkers and non-drinkers, which is one reason the drinking model is the more stable classifier.",
   },
   {
     src: "eda/age-by-drinking.png",
-    alt: "Notebook age distribution plot split by drinking status.",
+    alt: "Age distribution plot split by drinking status.",
     title: "Age distribution by drinking status",
     summary:
       "Drinking peaks through the 30-50 age range, then declines after the mid-50s. The non-drinker group becomes more prominent in older ages.",
   },
   {
     src: "eda/age-by-smoking.png",
-    alt: "Notebook age distribution plot split by smoking status.",
+    alt: "Age distribution plot split by smoking status.",
     title: "Age distribution by smoking status",
     summary:
       "Current smoking is strongest in earlier adulthood, while the quit-smoking class becomes more visible as age increases.",
   },
   {
     src: "eda/outlier-counts.png",
-    alt: "Notebook bar chart with the number of IQR outliers per numeric feature.",
+    alt: "Bar chart showing the number of unusual values across numeric features.",
     title: "Outlier counts by variable",
     summary:
-      "The notebook's blanket IQR filter flagged many rows across liver and metabolic variables. That visualization was useful diagnostically, but it was too aggressive for production cleaning.",
+      "Liver and metabolic measures show the widest spread in the population, highlighting where individuals tend to differ most strongly from one another.",
   },
 ];
 
