@@ -1,0 +1,59 @@
+---
+import { lookerStudioEmbedUrl, lookerStudioReportUrl } from "../data/content";
+
+const envReportUrl = import.meta.env.PUBLIC_LOOKER_STUDIO_REPORT_URL;
+const envEmbedUrl = import.meta.env.PUBLIC_LOOKER_STUDIO_EMBED_URL;
+
+const reportUrl = envReportUrl || lookerStudioReportUrl;
+const embedUrl =
+  envEmbedUrl ||
+  (reportUrl.includes("/reporting/")
+    ? reportUrl.replace("/reporting/", "/embed/reporting/")
+    : lookerStudioEmbedUrl);
+---
+
+<article class="dashboard-shell">
+  {embedUrl ? (
+    <>
+      <div class="dashboard-meta">
+        <div>
+          <p class="eyebrow">Public Looker Studio Report</p>
+          <p class="dashboard-subtle">
+            The report keeps its internal page navigation, so visitors can move through all
+            dashboard pages from inside the site.
+          </p>
+        </div>
+      </div>
+
+      <iframe
+        src={embedUrl}
+        title="Looker Studio dashboard"
+        loading="lazy"
+        referrerpolicy="no-referrer-when-downgrade"
+        allowfullscreen
+        sandbox="allow-storage-access-by-user-activation allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"
+      ></iframe>
+
+      {reportUrl && (
+        <p class="dashboard-link">
+          <a href={reportUrl} target="_blank" rel="noreferrer">
+            Open the full dashboard in a new tab
+          </a>
+        </p>
+      )}
+    </>
+  ) : (
+    <div class="dashboard-placeholder">
+      <p class="eyebrow">Looker Studio Embed Ready</p>
+      <h3>Add your public report URL to finish the embed</h3>
+      <p>
+        Set <code>PUBLIC_LOOKER_STUDIO_EMBED_URL</code> for the iframe source and optionally
+        <code>PUBLIC_LOOKER_STUDIO_REPORT_URL</code> for an "open in new tab" link.
+      </p>
+      <p>
+        The site already includes a built-in dashboard below, so this section becomes a drop-in
+        upgrade rather than a blocker.
+      </p>
+    </div>
+  )}
+</article>

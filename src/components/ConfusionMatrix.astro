@@ -1,0 +1,48 @@
+---
+interface MatrixRow {
+  expected: string;
+  values: Record<string, number>;
+}
+
+interface Props {
+  title: string;
+  labels: string[];
+  matrix: MatrixRow[];
+  labelMap?: Record<string, string>;
+}
+
+const { title, labels, matrix, labelMap = {} } = Astro.props;
+const maxValue = Math.max(...matrix.flatMap((row) => Object.values(row.values)));
+---
+
+<article class="chart-card">
+  <div class="chart-head">
+    <h3>{title}</h3>
+  </div>
+  <div class="matrix-wrap">
+    <table class="matrix-table">
+      <thead>
+        <tr>
+          <th>Expected \\ Predicted</th>
+          {labels.map((label) => <th>{labelMap[label] ?? label}</th>)}
+        </tr>
+      </thead>
+      <tbody>
+        {matrix.map((row) => (
+          <tr>
+            <th>{labelMap[row.expected] ?? row.expected}</th>
+            {labels.map((label) => {
+              const value = row.values[label] ?? row.values[`_${label}`] ?? 0;
+              const intensity = maxValue === 0 ? 0 : value / maxValue;
+              return (
+                <td style={`background: rgba(var(--matrix-rgb), ${0.14 + intensity * 0.56})`}>
+                  {value.toLocaleString()}
+                </td>
+              );
+            })}
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+</article>

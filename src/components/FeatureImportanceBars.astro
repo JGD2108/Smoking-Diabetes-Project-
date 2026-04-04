@@ -1,0 +1,37 @@
+---
+interface FeatureRow {
+  feature: string;
+  weight: number;
+  gain: number;
+}
+
+interface Props {
+  title: string;
+  rows: FeatureRow[];
+}
+
+const { title, rows } = Astro.props;
+const maxWeight = Math.max(...rows.map((row) => row.weight));
+---
+
+<article class="chart-card">
+  <div class="chart-head">
+    <h3>{title}</h3>
+  </div>
+  <div class="bar-list">
+    {rows.map((row) => {
+      const width = maxWeight === 0 ? 0 : (row.weight / maxWeight) * 100;
+      return (
+        <div class="bar-row">
+          <div class="bar-meta">
+            <span>{row.feature}</span>
+            <span>weight {row.weight.toLocaleString()} - gain {row.gain.toFixed(2)}</span>
+          </div>
+          <div class="bar-track">
+            <div class="bar-fill accent" style={`width:${width}%`}></div>
+          </div>
+        </div>
+      );
+    })}
+  </div>
+</article>

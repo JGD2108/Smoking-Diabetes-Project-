@@ -1,0 +1,33 @@
+---
+interface Item {
+  label: string;
+  count: number;
+  pct: number;
+}
+
+interface Props {
+  title: string;
+  items: Item[];
+}
+
+const { title, items } = Astro.props;
+---
+
+<article class="chart-card">
+  <div class="chart-head">
+    <h3>{title}</h3>
+  </div>
+  <div class="bar-list">
+    {items.map((item) => (
+      <div class="bar-row">
+        <div class="bar-meta">
+          <span>{item.label}</span>
+          <span>{item.count.toLocaleString()} - {item.pct}%</span>
+        </div>
+        <div class="bar-track">
+          <div class="bar-fill" style={`width:${item.pct}%`}></div>
+        </div>
+      </div>
+    ))}
+  </div>
+</article>

@@ -1,0 +1,854 @@
+---
+const defaults = Astro.props.defaults;
+const deploymentTarget = import.meta.env.PUBLIC_DEPLOYMENT_TARGET ?? "server";
+const isStaticDeployment = deploymentTarget === "github-pages";
+
+const smokingContextLabels = {
+  1: "Never",
+  2: "Quit",
+  3: "Still smoke",
+};
+
+const drinkingLabels = {
+  Y: "Drinker",
+  N: "Non-drinker",
+};
+
+const fieldGroups = [
+  {
+    title: "Demographics",
+    fields: [
+      ["sex", "Sex", "select"],
+      ["age", "Age", "number"],
+      ["height", "Height (cm)", "number"],
+      ["weight", "Weight (kg)", "number"],
+      ["waistline", "Waistline", "number"],
+    ],
+  },
+  {
+    title: "Senses and vitals",
+    fields: [
+      ["sight_left", "Sight left", "number"],
+      ["sight_right", "Sight right", "number"],
+      ["hear_left", "Hear left", "number"],
+      ["hear_right", "Hear right", "number"],
+      ["SBP", "SBP", "number"],
+      ["DBP", "DBP", "number"],
+      ["BLDS", "BLDS", "number"],
+    ],
+  },
+  {
+    title: "Lab signals",
+    fields: [
+      ["tot_chole", "Total cholesterol", "number"],
+      ["HDL_chole", "HDL cholesterol", "number"],
+      ["LDL_chole", "LDL cholesterol", "number"],
+      ["triglyceride", "Triglycerides", "number"],
+      ["hemoglobin", "Hemoglobin", "number"],
+      ["urine_protein", "Urine protein", "number"],
+      ["serum_creatinine", "Serum creatinine", "number"],
+      ["SGOT_AST", "SGOT AST", "number"],
+      ["SGOT_ALT", "SGOT ALT", "number"],
+      ["gamma_GTP", "Gamma GTP", "number"],
+    ],
+  },
+  {
+    title: "Context used by the deployed models",
+    fields: [
+      ["DRK_YN", "Known drinking status", "select"],
+      ["SMK_stat_type_cd", "Known smoking status", "select"],
+    ],
+  },
+];
+
+const presets = {
+  baseline: defaults,
+  lowerRisk: {
+    ...defaults,
+    sex: "F",
+    age: 65,
+    height: 160,
+    weight: 58,
+    waistline: 77,
+    BLDS: 88,
+    SBP: 118,
+    DBP: 74,
+    triglyceride: 92,
+    gamma_GTP: 14,
+    hemoglobin: 13.2,
+    DRK_YN: "N",
+    SMK_stat_type_cd: 1,
+  },
+  higherRisk: {
+    ...defaults,
+    sex: "M",
+    age: 40,
+    height: 175,
+    weight: 82,
+    waistline: 95,
+    BLDS: 114,
+    SBP: 142,
+    DBP: 92,
+    triglyceride: 188,
+    gamma_GTP: 76,
+    hemoglobin: 16.2,
+    DRK_YN: "Y",
+    SMK_stat_type_cd: 3,
+  },
+};
+
+const samplePopulation = [
+  {
+    id: "young_social_smoker",
+    name: "Young social smoker",
+    blurb: "Male, early 30s, social drinking, mildly elevated liver markers.",
+    values: {
+      ...defaults,
+      sex: "M",
+      age: 30,
+      height: 178,
+      weight: 80,
+      waistline: 88,
+      sight_left: 1,
+      sight_right: 1.2,
+      hear_left: 1,
+      hear_right: 1,
+      SBP: 128,
+      DBP: 84,
+      BLDS: 97,
+      tot_chole: 196,
+      HDL_chole: 46,
+      LDL_chole: 128,
+      triglyceride: 145,
+      hemoglobin: 16.1,
+      urine_protein: 1,
+      serum_creatinine: 1,
+      SGOT_AST: 28,
+      SGOT_ALT: 32,
+      gamma_GTP: 49,
+      DRK_YN: "Y",
+      SMK_stat_type_cd: 3,
+    },
+  },
+  {
+    id: "former_smoker_office_worker",
+    name: "Former smoker office worker",
+    blurb: "Middle-aged male, quit smoking, metabolic pressure starting to rise.",
+    values: {
+      ...defaults,
+      sex: "M",
+      age: 48,
+      height: 172,
+      weight: 78,
+      waistline: 91,
+      sight_left: 0.9,
+      sight_right: 1,
+      hear_left: 1,
+      hear_right: 1,
+      SBP: 134,
+      DBP: 88,
+      BLDS: 110,
+      tot_chole: 210,
+      HDL_chole: 44,
+      LDL_chole: 137,
+      triglyceride: 165,
+      hemoglobin: 15.2,
+      urine_protein: 1,
+      serum_creatinine: 0.9,
+      SGOT_AST: 29,
+      SGOT_ALT: 31,
+      gamma_GTP: 36,
+      DRK_YN: "N",
+      SMK_stat_type_cd: 2,
+    },
+  },
+  {
+    id: "healthy_retired_woman",
+    name: "Healthy retired woman",
+    blurb: "Older female profile with low waistline, normal glucose, and low gamma GTP.",
+    values: {
+      ...defaults,
+      sex: "F",
+      age: 67,
+      height: 158,
+      weight: 56,
+      waistline: 76,
+      sight_left: 0.8,
+      sight_right: 0.8,
+      hear_left: 1,
+      hear_right: 1,
+      SBP: 118,
+      DBP: 72,
+      BLDS: 90,
+      tot_chole: 186,
+      HDL_chole: 63,
+      LDL_chole: 104,
+      triglyceride: 88,
+      hemoglobin: 13,
+      urine_protein: 1,
+      serum_creatinine: 0.8,
+      SGOT_AST: 18,
+      SGOT_ALT: 14,
+      gamma_GTP: 12,
+      DRK_YN: "N",
+      SMK_stat_type_cd: 1,
+    },
+  },
+  {
+    id: "metabolic_high_risk",
+    name: "Metabolic high-risk profile",
+    blurb: "Male, 50s, abdominal obesity, higher blood pressure, glucose, and triglycerides.",
+    values: {
+      ...defaults,
+      sex: "M",
+      age: 54,
+      height: 170,
+      weight: 90,
+      waistline: 101,
+      sight_left: 1,
+      sight_right: 1,
+      hear_left: 1,
+      hear_right: 1,
+      SBP: 146,
+      DBP: 94,
+      BLDS: 124,
+      tot_chole: 228,
+      HDL_chole: 39,
+      LDL_chole: 149,
+      triglyceride: 224,
+      hemoglobin: 16.8,
+      urine_protein: 1,
+      serum_creatinine: 1.1,
+      SGOT_AST: 36,
+      SGOT_ALT: 44,
+      gamma_GTP: 84,
+      DRK_YN: "Y",
+      SMK_stat_type_cd: 3,
+    },
+  },
+  {
+    id: "balanced_urban_professional",
+    name: "Balanced urban professional",
+    blurb: "Female, late 30s, moderate vitals, social drinker, no smoking history.",
+    values: {
+      ...defaults,
+      sex: "F",
+      age: 39,
+      height: 165,
+      weight: 62,
+      waistline: 80,
+      sight_left: 1.2,
+      sight_right: 1,
+      hear_left: 1,
+      hear_right: 1,
+      SBP: 122,
+      DBP: 78,
+      BLDS: 93,
+      tot_chole: 192,
+      HDL_chole: 58,
+      LDL_chole: 118,
+      triglyceride: 102,
+      hemoglobin: 13.8,
+      urine_protein: 1,
+      serum_creatinine: 0.8,
+      SGOT_AST: 20,
+      SGOT_ALT: 19,
+      gamma_GTP: 18,
+      DRK_YN: "Y",
+      SMK_stat_type_cd: 1,
+    },
+  },
+];
+
+const staticPopulationPredictions = {
+  young_social_smoker: {
+    smoking: {
+      label: "3",
+      probabilities: [
+        { label: "3", prob: 0.48906755447387695 },
+        { label: "1", prob: 0.26785486936569214 },
+        { label: "2", prob: 0.24307756125926971 },
+      ],
+    },
+    drinking: {
+      label: "Y",
+      probabilities: [
+        { label: "Y", prob: 0.8197373151779175 },
+        { label: "N", prob: 0.1802627295255661 },
+      ],
+    },
+  },
+  former_smoker_office_worker: {
+    smoking: {
+      label: "2",
+      probabilities: [
+        { label: "2", prob: 0.3821558952331543 },
+        { label: "1", prob: 0.3650178909301758 },
+        { label: "3", prob: 0.25282618403434753 },
+      ],
+    },
+    drinking: {
+      label: "Y",
+      probabilities: [
+        { label: "Y", prob: 0.7465388774871826 },
+        { label: "N", prob: 0.25346115231513977 },
+      ],
+    },
+  },
+  healthy_retired_woman: {
+    smoking: {
+      label: "1",
+      probabilities: [
+        { label: "1", prob: 0.8176808953285217 },
+        { label: "3", prob: 0.0914359986782074 },
+        { label: "2", prob: 0.0908830463886261 },
+      ],
+    },
+    drinking: {
+      label: "N",
+      probabilities: [
+        { label: "N", prob: 0.8564013838768005 },
+        { label: "Y", prob: 0.14359867572784424 },
+      ],
+    },
+  },
+  metabolic_high_risk: {
+    smoking: {
+      label: "2",
+      probabilities: [
+        { label: "2", prob: 0.38344934582710266 },
+        { label: "3", prob: 0.37481266260147095 },
+        { label: "1", prob: 0.2417379915714264 },
+      ],
+    },
+    drinking: {
+      label: "Y",
+      probabilities: [
+        { label: "Y", prob: 0.8085731863975525 },
+        { label: "N", prob: 0.1914268136024475 },
+      ],
+    },
+  },
+  balanced_urban_professional: {
+    smoking: {
+      label: "1",
+      probabilities: [
+        { label: "1", prob: 0.7628682851791382 },
+        { label: "2", prob: 0.12017732858657837 },
+        { label: "3", prob: 0.11695435643196106 },
+      ],
+    },
+    drinking: {
+      label: "N",
+      probabilities: [
+        { label: "N", prob: 0.5840172171592712 },
+        { label: "Y", prob: 0.41598284244537354 },
+      ],
+    },
+  },
+};
+
+function labelForSmoking(value) {
+  return smokingContextLabels[value] ?? String(value);
+}
+
+function labelForDrinking(value) {
+  return drinkingLabels[value] ?? String(value);
+}
+
+function topProbability(result) {
+  return result.probabilities?.[0]?.prob ?? 0;
+}
+
+function summarize(rows, selector) {
+  const counts = rows.reduce((acc, row) => {
+    const key = selector(row);
+    acc[key] = (acc[key] ?? 0) + 1;
+    return acc;
+  }, {});
+
+  return Object.entries(counts)
+    .map(([label, count]) => `${label}: ${count}`)
+    .join(" | ");
+}
+
+const staticPopulationRows = samplePopulation
+  .map((person) => ({
+    person,
+    prediction: staticPopulationPredictions[person.id],
+  }))
+  .filter((row) => row.prediction);
+
+const staticSmokingSummary = summarize(
+  staticPopulationRows,
+  (row) => labelForSmoking(row.prediction.smoking.label),
+);
+const staticDrinkingSummary = summarize(
+  staticPopulationRows,
+  (row) => labelForDrinking(row.prediction.drinking.label),
+);
+---
+
+<section class="playground">
+  <div class="playground-intro">
+    <h3>{isStaticDeployment ? "GitHub Pages demo" : "Live BQML playground"}</h3>
+    <p>
+      These are two separate BigQuery ML models, but both were trained with a known context input
+      from the other behavior. That is why the detailed mode asks for both known drinking and
+      known smoking status.
+    </p>
+    {isStaticDeployment && (
+      <p class="playground-hint">
+        GitHub Pages is static, so this deployment shows a precomputed 5-person demo. The live
+        prediction form remains available when you run the server version locally or on a backend
+        host.
+      </p>
+    )}
+  </div>
+
+  <section class="population-panel">
+    <div class="population-head">
+      <div class="population-copy">
+        <p class="result-kicker">{isStaticDeployment ? "Static Demo Mode" : "Faster Demo Mode"}</p>
+        <h3>Run a sample population of 5 people</h3>
+        <p>
+          If you do not want users to fill every variable, use this curated mini-population. It
+          compares five realistic profiles and shows the most important outputs in one table.
+        </p>
+      </div>
+      {!isStaticDeployment && (
+        <button type="button" class="primary-button" id="run-population-button">
+          Simulate 5 people
+        </button>
+      )}
+    </div>
+
+    <div class="persona-grid">
+      {samplePopulation.map((person) => (
+        <article class="persona-card">
+          <div class="persona-card-head">
+            <div>
+              <h4>{person.name}</h4>
+              <p>{person.blurb}</p>
+            </div>
+            {!isStaticDeployment && (
+              <button
+                type="button"
+                class="preset-button persona-load-button"
+                data-persona={person.id}
+              >
+                Use in manual form
+              </button>
+            )}
+          </div>
+
+          <div class="persona-meta">
+            <span>{person.values.sex === "M" ? "Male" : "Female"}</span>
+            <span>{person.values.age} years</span>
+            <span>Waist {person.values.waistline}</span>
+            <span>BLDS {person.values.BLDS}</span>
+            <span>Gamma {person.values.gamma_GTP}</span>
+            <span>Known drinker {person.values.DRK_YN}</span>
+            <span>Known smoking {labelForSmoking(person.values.SMK_stat_type_cd)}</span>
+          </div>
+        </article>
+      ))}
+    </div>
+
+    {isStaticDeployment ? (
+      <>
+        <div class="playground-status">
+          Showing a precomputed sample generated from the current BigQuery ML models.
+        </div>
+
+        <div class="population-summary-grid">
+          <article class="population-stat">
+            <p class="result-kicker">Smoking split</p>
+            <strong>{staticSmokingSummary}</strong>
+          </article>
+          <article class="population-stat">
+            <p class="result-kicker">Drinking split</p>
+            <strong>{staticDrinkingSummary}</strong>
+          </article>
+        </div>
+
+        <div class="population-results-shell">
+          <div class="table-scroll">
+            <table class="population-table">
+              <thead>
+                <tr>
+                  <th>Profile</th>
+                  <th>Key inputs</th>
+                  <th>Known drinking</th>
+                  <th>Known smoking</th>
+                  <th>Predicted smoking</th>
+                  <th>Smoking confidence</th>
+                  <th>Predicted drinking</th>
+                  <th>Drinking confidence</th>
+                </tr>
+              </thead>
+              <tbody>
+                {staticPopulationRows.map(({ person, prediction }) => (
+                  <tr>
+                    <td>
+                      <strong>{person.name}</strong>
+                      <div class="population-subtle">{person.blurb}</div>
+                    </td>
+                    <td>
+                      {person.values.sex === "M" ? "Male" : "Female"}, {person.values.age}y
+                      <br />
+                      Waist {person.values.waistline}, BLDS {person.values.BLDS}, Gamma{" "}
+                      {person.values.gamma_GTP}
+                    </td>
+                    <td>{labelForDrinking(person.values.DRK_YN)}</td>
+                    <td>{labelForSmoking(person.values.SMK_stat_type_cd)}</td>
+                    <td>
+                      <strong>{labelForSmoking(prediction.smoking.label)}</strong>
+                    </td>
+                    <td>{(topProbability(prediction.smoking) * 100).toFixed(1)}%</td>
+                    <td>
+                      <strong>{labelForDrinking(prediction.drinking.label)}</strong>
+                    </td>
+                    <td>{(topProbability(prediction.drinking) * 100).toFixed(1)}%</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </>
+    ) : (
+      <>
+        <div id="population-status" class="playground-status" aria-live="polite"></div>
+        <div id="population-summary" class="population-summary-grid"></div>
+        <div id="population-results" class="population-results-shell" hidden></div>
+      </>
+    )}
+  </section>
+
+  <section class="manual-panel">
+    <div class="manual-head">
+      <div>
+        <p class="result-kicker">Detailed Mode</p>
+        <h3>Manual individual prediction</h3>
+      </div>
+      {!isStaticDeployment && (
+        <div class="preset-row">
+          <button type="button" class="preset-button" data-preset="baseline">Cloud sample</button>
+          <button type="button" class="preset-button" data-preset="lowerRisk">
+            Lower-risk profile
+          </button>
+          <button type="button" class="preset-button" data-preset="higherRisk">
+            Higher-risk profile
+          </button>
+        </div>
+      )}
+    </div>
+
+    {isStaticDeployment ? (
+      <article class="notes-card playground-disabled">
+        <h3>Live form disabled on GitHub Pages</h3>
+        <p>
+          GitHub Pages cannot run the Astro server endpoint used by <code>/api/predict</code>, so
+          this static deployment shows the sample population only.
+        </p>
+        <p>
+          Run <code>npm run dev</code> locally or deploy the server build to a backend platform if
+          you want the manual live predictor.
+        </p>
+      </article>
+    ) : (
+      <>
+        <form id="playground-form" class="playground-form">
+          {fieldGroups.map((group) => (
+            <fieldset class="playground-group">
+              <legend>{group.title}</legend>
+              <div class="playground-grid">
+                {group.fields.map(([name, label, type]) => (
+                  <label class="playground-field">
+                    <span>{label}</span>
+                    {type === "select" && name === "sex" ? (
+                      <select name={name}>
+                        <option value="M" selected={defaults[name] === "M"}>Male</option>
+                        <option value="F" selected={defaults[name] === "F"}>Female</option>
+                      </select>
+                    ) : type === "select" && name === "DRK_YN" ? (
+                      <select name={name}>
+                        <option value="Y" selected={defaults[name] === "Y"}>Y</option>
+                        <option value="N" selected={defaults[name] === "N"}>N</option>
+                      </select>
+                    ) : type === "select" ? (
+                      <select name={name}>
+                        <option value="1" selected={defaults[name] === 1}>1 - never</option>
+                        <option value="2" selected={defaults[name] === 2}>2 - quit</option>
+                        <option value="3" selected={defaults[name] === 3}>3 - still smoking</option>
+                      </select>
+                    ) : (
+                      <input type="number" step="any" name={name} value={defaults[name]} />
+                    )}
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+          ))}
+
+          <div class="playground-actions">
+            <button type="submit" class="primary-button">Run live prediction</button>
+            <p class="playground-hint">
+              The quick population demo above is easier for users. Keep this detailed form for
+              teacher review, testing, or case-by-case analysis.
+            </p>
+          </div>
+        </form>
+
+        <div id="playground-status" class="playground-status" aria-live="polite"></div>
+        <div id="playground-results" class="playground-results"></div>
+      </>
+    )}
+  </section>
+</section>
+
+<script define:vars={{ presets, samplePopulation, isStaticDeployment }}>
+  const smokingLabels = {
+    1: "Never",
+    2: "Quit",
+    3: "Still smoke",
+  };
+
+  const drinkingLabels = {
+    Y: "Drinker",
+    N: "Non-drinker",
+  };
+
+  if (!isStaticDeployment) {
+    const form = document.querySelector("#playground-form");
+    const status = document.querySelector("#playground-status");
+    const results = document.querySelector("#playground-results");
+    const presetButtons = document.querySelectorAll("[data-preset]");
+    const personaButtons = document.querySelectorAll("[data-persona]");
+    const runPopulationButton = document.querySelector("#run-population-button");
+    const populationStatus = document.querySelector("#population-status");
+    const populationSummary = document.querySelector("#population-summary");
+    const populationResults = document.querySelector("#population-results");
+
+    function setStatus(message, isError = false) {
+      status.textContent = message;
+      status.dataset.state = isError ? "error" : "idle";
+    }
+
+    function setPopulationStatus(message, isError = false) {
+      populationStatus.textContent = message;
+      populationStatus.dataset.state = isError ? "error" : "idle";
+    }
+
+    function applyPreset(values) {
+      for (const [key, value] of Object.entries(values)) {
+        const field = form.elements.namedItem(key);
+        if (!field) continue;
+        field.value = String(value);
+      }
+    }
+
+    function labelForSmoking(value) {
+      return smokingLabels[value] ?? String(value);
+    }
+
+    function labelForDrinking(value) {
+      return drinkingLabels[value] ?? String(value);
+    }
+
+    async function requestPrediction(payload) {
+      const response = await fetch("/api/predict", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Prediction request failed");
+      }
+
+      return data;
+    }
+
+    function resultCard(title, result, labelMap) {
+      const probabilities = result.probabilities
+        .map((entry) => {
+          const label = labelMap[entry.label] ?? entry.label;
+          return `
+            <li>
+              <span>${label}</span>
+              <strong>${(entry.prob * 100).toFixed(1)}%</strong>
+            </li>
+          `;
+        })
+        .join("");
+
+      const winner = labelMap[result.label] ?? result.label;
+
+      return `
+        <article class="result-card">
+          <p class="result-kicker">${title}</p>
+          <h4>${winner}</h4>
+          <ul>${probabilities}</ul>
+        </article>
+      `;
+    }
+
+    function topProbability(result) {
+      return result.probabilities?.[0]?.prob ?? 0;
+    }
+
+    function renderPopulationSummary(rows) {
+      const smokingCounts = rows.reduce((acc, row) => {
+        const key = labelForSmoking(row.prediction.smoking.label);
+        acc[key] = (acc[key] ?? 0) + 1;
+        return acc;
+      }, {});
+
+      const drinkingCounts = rows.reduce((acc, row) => {
+        const key = labelForDrinking(row.prediction.drinking.label);
+        acc[key] = (acc[key] ?? 0) + 1;
+        return acc;
+      }, {});
+
+      const smokingSummary = Object.entries(smokingCounts)
+        .map(([label, count]) => `${label}: ${count}`)
+        .join(" | ");
+
+      const drinkingSummary = Object.entries(drinkingCounts)
+        .map(([label, count]) => `${label}: ${count}`)
+        .join(" | ");
+
+      populationSummary.innerHTML = `
+        <article class="population-stat">
+          <p class="result-kicker">Smoking split</p>
+          <strong>${smokingSummary || "No results yet"}</strong>
+        </article>
+        <article class="population-stat">
+          <p class="result-kicker">Drinking split</p>
+          <strong>${drinkingSummary || "No results yet"}</strong>
+        </article>
+      `;
+    }
+
+    function renderPopulationResults(rows) {
+      const tableRows = rows
+        .map((row) => {
+          const smokingWinner = labelForSmoking(row.prediction.smoking.label);
+          const drinkingWinner = labelForDrinking(row.prediction.drinking.label);
+          const smokingConfidence = (topProbability(row.prediction.smoking) * 100).toFixed(1);
+          const drinkingConfidence = (topProbability(row.prediction.drinking) * 100).toFixed(1);
+
+          return `
+            <tr>
+              <td>
+                <strong>${row.person.name}</strong>
+                <div class="population-subtle">${row.person.blurb}</div>
+              </td>
+              <td>
+                ${row.person.values.sex === "M" ? "Male" : "Female"}, ${row.person.values.age}y
+                <br />
+                Waist ${row.person.values.waistline}, BLDS ${row.person.values.BLDS}, Gamma ${row.person.values.gamma_GTP}
+              </td>
+              <td>${labelForDrinking(row.person.values.DRK_YN)}</td>
+              <td>${labelForSmoking(row.person.values.SMK_stat_type_cd)}</td>
+              <td><strong>${smokingWinner}</strong></td>
+              <td>${smokingConfidence}%</td>
+              <td><strong>${drinkingWinner}</strong></td>
+              <td>${drinkingConfidence}%</td>
+            </tr>
+          `;
+        })
+        .join("");
+
+      populationResults.hidden = false;
+      populationResults.innerHTML = `
+        <div class="table-scroll">
+          <table class="population-table">
+            <thead>
+              <tr>
+                <th>Profile</th>
+                <th>Key inputs</th>
+                <th>Known drinking</th>
+                <th>Known smoking</th>
+                <th>Predicted smoking</th>
+                <th>Smoking confidence</th>
+                <th>Predicted drinking</th>
+                <th>Drinking confidence</th>
+              </tr>
+            </thead>
+            <tbody>${tableRows}</tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    presetButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        applyPreset(presets[button.dataset.preset]);
+        setStatus(`Loaded ${button.textContent?.trim()} preset.`);
+      });
+    });
+
+    personaButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        const person = samplePopulation.find((entry) => entry.id === button.dataset.persona);
+        if (!person) return;
+        applyPreset(person.values);
+        setStatus(`Loaded ${person.name} into the manual form.`);
+        form.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    });
+
+    runPopulationButton?.addEventListener("click", async () => {
+      setPopulationStatus("Running 5 live BigQuery ML predictions...");
+      runPopulationButton.disabled = true;
+      populationResults.hidden = true;
+      populationResults.innerHTML = "";
+      populationSummary.innerHTML = "";
+
+      try {
+        const rows = await Promise.all(
+          samplePopulation.map(async (person) => ({
+            person,
+            prediction: await requestPrediction(person.values),
+          })),
+        );
+
+        renderPopulationSummary(rows);
+        renderPopulationResults(rows);
+        setPopulationStatus(
+          `Population simulation completed at ${new Date().toLocaleString()}.`,
+        );
+      } catch (error) {
+        setPopulationStatus(error.message || "Population simulation failed.", true);
+      } finally {
+        runPopulationButton.disabled = false;
+      }
+    });
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      setStatus("Running BigQuery ML prediction...");
+      results.innerHTML = "";
+
+      const payload = Object.fromEntries(new FormData(form).entries());
+
+      try {
+        const data = await requestPrediction(payload);
+        setStatus(`Prediction completed at ${new Date(data.predictedAt).toLocaleString()}.`);
+        results.innerHTML = `
+          ${resultCard("Smoking model", data.smoking, smokingLabels)}
+          ${resultCard("Drinking model", data.drinking, drinkingLabels)}
+        `;
+      } catch (error) {
+        setStatus(error.message || "Prediction failed.", true);
+      }
+    });
+  }
+</script>

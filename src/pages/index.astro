@@ -1,0 +1,568 @@
+---
+import siteData from "../data/siteData.generated.json";
+import {
+  architectureFlow,
+  dashboardNotes,
+  edaFigures,
+  modelContextNotes,
+  projectLinks,
+  references,
+  sampleRows,
+  siteMeta,
+  variableDescriptions,
+} from "../data/content";
+import ConfusionMatrix from "../components/ConfusionMatrix.astro";
+import DashboardEmbed from "../components/DashboardEmbed.astro";
+import FeatureImportanceBars from "../components/FeatureImportanceBars.astro";
+import MetricCard from "../components/MetricCard.astro";
+import ModelPlayground from "../components/ModelPlayground.astro";
+import SectionHeading from "../components/SectionHeading.astro";
+import BaseLayout from "../layouts/BaseLayout.astro";
+
+const latestSmoking = siteData.models.latestMetrics.smoking_rf_model;
+const latestDrinking = siteData.models.latestMetrics.drinking_rf_model;
+const latestRun = siteData.cloudPipeline.latestRun;
+const latestPromotion = siteData.cloudPipeline.promotions[0];
+const basePath = import.meta.env.BASE_URL;
+
+const smokingLabelMap = {
+  "1": "Never",
+  "2": "Quit",
+  "3": "Still smoke",
+};
+
+const drinkingLabelMap = {
+  N: "Non-drinker",
+  Y: "Drinker",
+};
+
+function metricDelta(current, baseline) {
+  const delta = current - baseline;
+  const sign = delta >= 0 ? "+" : "";
+  return `${sign}${(delta * 100).toFixed(1)} pts`;
+}
+
+function withBase(path) {
+  const cleanBase = basePath.endsWith("/") ? basePath : `${basePath}/`;
+  return `${cleanBase}${String(path).replace(/^\/+/, "")}`;
+}
+---
+
+<BaseLayout title={siteMeta.title} description={siteMeta.description}>
+  <header class="site-header">
+    <a href="#top" class="brand">
+      <span class="brand-mark">SD</span>
+      <span>
+        <strong>Smoking and Drinking Prediction</strong>
+        <small>Data Mining course project</small>
+      </span>
+    </a>
+
+    <nav class="site-nav">
+      <a href="#overview">Overview</a>
+      <a href="#dataset">Dataset</a>
+      <a href="#eda">EDA</a>
+      <a href="#pipeline">Pipeline</a>
+      <a href="#models">Models</a>
+      <a href="#dashboard">Dashboard</a>
+      <a href="#playground">Playground</a>
+      <button type="button" class="theme-button" data-theme-toggle>
+        Theme
+      </button>
+    </nav>
+  </header>
+
+  <main id="top">
+    <section class="hero">
+      <div class="hero-copy">
+        <p class="eyebrow">Data Mining Course Project / Editorial Redesign</p>
+        <h1>Smoking and Drinking Prediction</h1>
+        <p class="hero-lead">
+          A cleaner front-end for the notebook story, the cloud pipeline, and the live dashboard.
+        </p>
+        <p class="hero-body">
+          This version keeps the technical depth of the project but presents it with a calmer,
+          more portfolio-style layout inspired by your reference site: stronger typography,
+          clearer section rhythm, and your public Looker Studio report embedded directly into the
+          experience.
+        </p>
+
+        <div class="hero-links">
+          {projectLinks.map((link) => (
+            <a href={link.href} target="_blank" rel="noreferrer" class="chip-link">
+              {link.label}
+            </a>
+          ))}
+        </div>
+
+        <div class="hero-jump-links">
+          <a href="#dashboard" class="hero-inline-link">Jump to dashboard</a>
+          <a href="#playground" class="hero-inline-link">Try live prediction</a>
+        </div>
+      </div>
+
+      <div class="hero-panel">
+        <p class="eyebrow panel-eyebrow">Project Snapshot</p>
+        <div class="hero-grid">
+          <MetricCard
+            label="Raw dataset rows"
+            value={siteData.dataset.observations.toLocaleString()}
+            note="Source table in BigQuery"
+          />
+          <MetricCard
+            label="Rows preserved in staging"
+            value={`${siteData.cloudPipeline.preservedPct}%`}
+            note={`${siteData.cloudPipeline.stageCounts.staging.toLocaleString()} clean rows`}
+          />
+          <MetricCard
+            label="BQML models deployed"
+            value="2"
+            note="Smoking and drinking classifiers"
+          />
+          <MetricCard
+            label="Workflow cadence"
+            value={siteData.project.schedulerJobs[0]?.schedule ?? "Weekly"}
+            note={siteData.project.schedulerJobs[0]?.timeZone ?? "Scheduler active"}
+          />
+        </div>
+
+        <div class="hero-note">
+          <p>
+            <strong>Dashboard ready.</strong> Your public Looker Studio report is embedded below,
+            and the internal page navigation stays available inside the iframe.
+          </p>
+          <p class="hero-note-meta">
+            Latest workflow run: {latestRun?.pipelineRunId ?? "workflow_run_001"} -{" "}
+            {latestRun?.finalStatus ?? "SUCCESS"}
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <div class="content-shell">
+      <aside class="page-outline" aria-label="Page outline">
+        <p class="outline-label">On this page</p>
+        <a href="#overview">Project focus</a>
+        <a href="#dataset">Dataset</a>
+        <a href="#eda">EDA</a>
+        <a href="#pipeline">Pipeline</a>
+        <a href="#models">Models</a>
+        <a href="#dashboard">Dashboard</a>
+        <a href="#playground">Playground</a>
+        <a href="#references">References</a>
+      </aside>
+
+      <div class="content-stack">
+        <section id="overview" class="section">
+          <SectionHeading
+            kicker="Project Focus"
+            title="From notebook analysis to an end-to-end cloud pipeline"
+            intro="The first version of this project lived in Colab and a Jupyter notebook. The current version stages data in BigQuery, validates it with Dataform, trains models in BigQuery ML, automates runs with Workflows and Cloud Scheduler, and records metrics in monitoring tables."
+          />
+
+          <div class="insight-grid">
+            <article class="insight-card">
+              <h3>Notebook baseline</h3>
+              <p>
+                The original notebook explored 991,346 observations and trained Random Forest
+                models locally after removing{" "}
+                {siteData.notebookBaseline.rowsRemovedByIqr.toLocaleString()} rows with a blanket
+                IQR filter.
+              </p>
+            </article>
+            <article class="insight-card">
+              <h3>Cloud-first pipeline</h3>
+              <p>
+                The cloud pipeline keeps{" "}
+                {siteData.cloudPipeline.stageCounts.staging.toLocaleString()} rows, removes only{" "}
+                {siteData.cloudPipeline.rowsDroppedInStaging.toLocaleString()} rows, passes all
+                current Dataform checks, and refreshes predictions in BigQuery.
+              </p>
+            </article>
+            <article class="insight-card">
+              <h3>Presentable delivery</h3>
+              <p>
+                This Astro site packages the exploratory story, operational pipeline, and a live
+                prediction playground in one place so the project reads like a finished portfolio
+                piece.
+              </p>
+            </article>
+          </div>
+        </section>
+
+        <section id="dataset" class="section">
+          <SectionHeading
+            kicker="Dataset"
+            title="Health signals from the Korean National Health Insurance Service"
+            intro="The source dataset contains anonymized health indicators and target labels for smoking status and drinking behavior. It is rich enough for both exploratory analysis and supervised learning."
+          />
+
+          <div class="metric-grid">
+            <MetricCard label="Observations" value={siteData.dataset.observations.toLocaleString()} />
+            <MetricCard label="Variables" value={String(siteData.dataset.variables)} />
+            <MetricCard label="Completeness" value={siteData.dataset.completeness} />
+            <MetricCard
+              label="Project"
+              value={siteData.project.id}
+              note={siteData.project.location}
+            />
+          </div>
+
+          <div class="table-card">
+            <h3>Sample rows</h3>
+            <div class="table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    {Object.keys(sampleRows[0]).map((key) => <th>{key}</th>)}
+                  </tr>
+                </thead>
+                <tbody>
+                  {sampleRows.map((row) => (
+                    <tr>
+                      {Object.values(row).map((value) => <td>{String(value)}</td>)}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="variables-grid">
+            {variableDescriptions.map(([name, description]) => (
+              <article class="variable-card">
+                <h3>{name}</h3>
+                <p>{description}</p>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section id="eda" class="section">
+          <SectionHeading
+            kicker="Exploratory Analysis"
+            title="The EDA section now uses the actual notebook figures"
+            intro="These plots were extracted from the original notebook outputs and kept as the exploratory source of truth for the website. The cloud pipeline story starts later, after the analysis phase."
+          />
+
+          <div class="eda-grid">
+            {edaFigures.map((figure) => (
+              <article class="eda-card">
+                <a href={withBase(figure.src)} target="_blank" rel="noreferrer" class="eda-media">
+                  <img src={withBase(figure.src)} alt={figure.alt} loading="lazy" />
+                </a>
+                <div class="eda-copy">
+                  <h3>{figure.title}</h3>
+                  <p>{figure.summary}</p>
+                  <a href={withBase(figure.src)} target="_blank" rel="noreferrer" class="eda-link">
+                    Open full figure
+                  </a>
+                </div>
+              </article>
+            ))}
+          </div>
+
+          <div class="compare-grid">
+            <article class="compare-card">
+              <p class="eyebrow">Cleaning in the notebook</p>
+              <h3>IQR removal was visually useful, but too destructive for production</h3>
+              <p>
+                The notebook version dropped{" "}
+                {siteData.notebookBaseline.rowsRemovedByIqr.toLocaleString()} rows after flagging
+                any numeric outlier. That cut the dataset down to{" "}
+                {siteData.notebookBaseline.rowsAfterIqrCleaning.toLocaleString()} rows.
+              </p>
+            </article>
+            <article class="compare-card emphasis">
+              <p class="eyebrow">Cleaning in the cloud pipeline</p>
+              <h3>Dataform keeps almost the full table and removes only explainable issues</h3>
+              <p>
+                The current cloud staging table keeps{" "}
+                {siteData.cloudPipeline.stageCounts.staging.toLocaleString()} rows and only
+                removes {siteData.cloudPipeline.rowsDroppedInStaging.toLocaleString()} records,
+                mostly exact duplicates and validation failures.
+              </p>
+            </article>
+          </div>
+
+          <article class="notes-card">
+            <h3>Notebook role in the final project</h3>
+            <ul class="note-list">
+              <li>
+                The notebook is now treated as an exploratory artifact, not the production
+                pipeline.
+              </li>
+              <li>
+                Its figures power this EDA section, while the cloud pipeline handles ingestion,
+                transformation, training, and scheduling.
+              </li>
+              <li>
+                This split keeps the analysis authentic without pretending the notebook is still
+                running the production system.
+              </li>
+            </ul>
+          </article>
+        </section>
+
+        <section id="pipeline" class="section">
+          <SectionHeading
+            kicker="Cloud Pipeline"
+            title="The project now runs as a BigQuery and Workflows pipeline"
+            intro="This is the actual implemented path in GCP today. The site data below is pulled from the current project snapshot, not guessed from the original plan."
+          />
+
+          <div class="flow-card">
+            {architectureFlow.map((step, index) => (
+              <div class="flow-step">
+                <span>{index + 1}</span>
+                <p>{step}</p>
+              </div>
+            ))}
+          </div>
+
+          <div class="metric-grid">
+            <MetricCard
+              label="Workflow"
+              value={siteData.project.workflow?.name ?? "health-pipeline"}
+              note={siteData.project.workflow?.state ?? "ACTIVE"}
+            />
+            <MetricCard
+              label="Latest run"
+              value={latestRun?.pipelineRunId ?? "workflow_run_001"}
+              note={latestRun?.finalStatus ?? "SUCCESS"}
+            />
+            <MetricCard
+              label="Duplicates removed"
+              value={siteData.cloudPipeline.duplicatesRemoved.toLocaleString()}
+              note="from the latest pipeline run"
+            />
+            <MetricCard
+              label="Model promotion"
+              value={latestPromotion?.status ?? "APPROVED"}
+              note={latestPromotion?.modelName ?? "smoking_rf_model"}
+            />
+          </div>
+
+          <div class="chart-grid two-up">
+            <article class="chart-card">
+              <div class="chart-head">
+                <h3>Latest pipeline runs</h3>
+              </div>
+              <div class="timeline-list">
+                {siteData.cloudPipeline.pipelineRuns.map((run) => (
+                  <div class="timeline-item">
+                    <div>
+                      <strong>{run.pipelineRunId}</strong>
+                      <p>{run.runTimestamp}</p>
+                    </div>
+                    <p>
+                      {run.stagingRowCount.toLocaleString()} clean rows - {run.finalStatus}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </article>
+
+            <article class="chart-card">
+              <div class="chart-head">
+                <h3>Data quality checks</h3>
+              </div>
+              <div class="timeline-list">
+                {siteData.cloudPipeline.dataQualityChecks.map((check) => (
+                  <div class="timeline-item">
+                    <div>
+                      <strong>{check.name}</strong>
+                      <p>{check.timestamp}</p>
+                    </div>
+                    <p>{check.status} - {check.failedRows} failed rows</p>
+                  </div>
+                ))}
+              </div>
+            </article>
+          </div>
+
+          <article class="notes-card">
+            <h3>Operational notes</h3>
+            <ul class="note-list">
+              {siteData.project.alerting.map((note) => <li>{note}</li>)}
+            </ul>
+          </article>
+        </section>
+
+        <section id="models" class="section">
+          <SectionHeading
+            kicker="Models"
+            title="Notebook baselines versus cloud-trained BigQuery ML models"
+            intro="The cloud version shifts the project from local RandomForest training to warehouse-native BQML training. That gives the project a more reproducible path and a live prediction surface."
+          />
+
+          <div class="chart-grid two-up">
+            <article class="chart-card compare-panel">
+              <div class="chart-head">
+                <h3>Smoking classifier</h3>
+              </div>
+              <div class="model-metrics">
+                <div>
+                  <p class="metric-label">Notebook accuracy</p>
+                  <strong>{(siteData.notebookBaseline.smoking.accuracy * 100).toFixed(1)}%</strong>
+                </div>
+                <div>
+                  <p class="metric-label">Cloud accuracy</p>
+                  <strong>{(latestSmoking.accuracy * 100).toFixed(1)}%</strong>
+                  <small>
+                    {metricDelta(latestSmoking.accuracy, siteData.notebookBaseline.smoking.accuracy)}
+                  </small>
+                </div>
+                <div>
+                  <p class="metric-label">Notebook F1</p>
+                  <strong>{siteData.notebookBaseline.smoking.f1.toFixed(3)}</strong>
+                </div>
+                <div>
+                  <p class="metric-label">Cloud F1</p>
+                  <strong>{latestSmoking.f1.toFixed(3)}</strong>
+                  <small>{metricDelta(latestSmoking.f1, siteData.notebookBaseline.smoking.f1)}</small>
+                </div>
+              </div>
+            </article>
+
+            <article class="chart-card compare-panel">
+              <div class="chart-head">
+                <h3>Drinking classifier</h3>
+              </div>
+              <div class="model-metrics">
+                <div>
+                  <p class="metric-label">Notebook accuracy</p>
+                  <strong>{(siteData.notebookBaseline.drinking.accuracy * 100).toFixed(1)}%</strong>
+                </div>
+                <div>
+                  <p class="metric-label">Cloud accuracy</p>
+                  <strong>{(latestDrinking.accuracy * 100).toFixed(1)}%</strong>
+                  <small>
+                    {metricDelta(
+                      latestDrinking.accuracy,
+                      siteData.notebookBaseline.drinking.accuracy,
+                    )}
+                  </small>
+                </div>
+                <div>
+                  <p class="metric-label">Notebook F1</p>
+                  <strong>{siteData.notebookBaseline.drinking.f1.toFixed(3)}</strong>
+                </div>
+                <div>
+                  <p class="metric-label">Cloud F1</p>
+                  <strong>{latestDrinking.f1.toFixed(3)}</strong>
+                  <small>
+                    {metricDelta(latestDrinking.f1, siteData.notebookBaseline.drinking.f1)}
+                  </small>
+                </div>
+              </div>
+            </article>
+          </div>
+
+          <div class="chart-grid two-up">
+            <FeatureImportanceBars
+              title="Smoking model feature importance"
+              rows={siteData.models.smokingFeatureImportance}
+            />
+            <FeatureImportanceBars
+              title="Drinking model feature importance"
+              rows={siteData.models.drinkingFeatureImportance}
+            />
+          </div>
+
+          <div class="chart-grid two-up">
+            <ConfusionMatrix
+              title="Smoking confusion matrix"
+              labels={siteData.models.smokingConfusionMatrix.labels}
+              matrix={siteData.models.smokingConfusionMatrix.matrix}
+              labelMap={smokingLabelMap}
+            />
+            <ConfusionMatrix
+              title="Drinking confusion matrix"
+              labels={siteData.models.drinkingConfusionMatrix.labels}
+              matrix={siteData.models.drinkingConfusionMatrix.matrix}
+              labelMap={drinkingLabelMap}
+            />
+          </div>
+
+          <article class="notes-card">
+            <h3>What the current model system implies</h3>
+            <ul class="note-list">
+              {modelContextNotes.map((note) => <li>{note}</li>)}
+            </ul>
+          </article>
+        </section>
+
+        <section id="dashboard" class="section">
+          <SectionHeading
+            kicker="Dashboard"
+            title="Embedded Looker Studio report plus pipeline health summary"
+            intro="Your public Looker Studio report is embedded below. The report keeps its own page navigation, so the multiple dashboard pages stay accessible without sending visitors away from the site."
+          />
+
+          <DashboardEmbed />
+
+          <div class="metric-grid">
+            <MetricCard
+              label="Latest smoking accuracy"
+              value={`${(latestSmoking.accuracy * 100).toFixed(1)}%`}
+              note={latestSmoking.pipelineRunId}
+            />
+            <MetricCard
+              label="Latest drinking accuracy"
+              value={`${(latestDrinking.accuracy * 100).toFixed(1)}%`}
+              note={latestDrinking.pipelineRunId}
+            />
+            <MetricCard
+              label="Workflow schedule"
+              value={siteData.project.schedulerJobs[0]?.schedule ?? "0 3 * * 1"}
+              note={siteData.project.schedulerJobs[0]?.name ?? "health-pipeline-weekly"}
+            />
+            <MetricCard
+              label="Promoted models"
+              value={String(siteData.cloudPipeline.promotions.length)}
+              note="current monitoring table entries"
+            />
+          </div>
+
+          <article class="notes-card">
+            <h3>Dashboard notes</h3>
+            <ul class="note-list">
+              {dashboardNotes.map((note) => <li>{note}</li>)}
+            </ul>
+          </article>
+        </section>
+
+        <section id="playground" class="section">
+          <SectionHeading
+            kicker="Model Playground"
+            title="Run live predictions against the deployed BigQuery ML models"
+            intro="This playground uses an Astro API route that queries ML.PREDICT in your GCP project. It is the most direct way to show that the cloud models are functioning."
+          />
+
+          <ModelPlayground defaults={siteData.models.playgroundDefaults} />
+        </section>
+
+        <section id="references" class="section">
+          <SectionHeading
+            kicker="References"
+            title="Research and source material"
+            intro="The narrative on this site combines the notebook findings, the cloud implementation, and supporting literature around smoking and drinking prediction from biometric signals."
+          />
+
+          <div class="references-list">
+            {references.map((reference) => <p>{reference}</p>)}
+          </div>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <p>
+      Built with Astro, BigQuery ML, Workflows, Cloud Scheduler, and the original exploratory
+      notebook.
+    </p>
+    <p>Snapshot generated on {new Date(siteData.generatedAt).toLocaleString()}.</p>
+  </footer>
+</BaseLayout>

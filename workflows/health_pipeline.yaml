@@ -1,0 +1,183 @@
+main:
+  params: [args]
+  steps:
+    - init:
+        assign:
+          - project_id: "pipeline-smoking-drinking"
+          - location: "us-central1"
+          - pipeline_run_id: ${default(map.get(args, "pipeline_run_id"), "manual_workflow_run_001")}
+          - data_version: ${default(map.get(args, "data_version"), "v1")}
+          - source_file: ${default(map.get(args, "source_file"), "smoking_driking_dataset_Ver01.csv")}
+
+    - create_compilation_result:
+        call: http.post
+        args:
+          url: ${"https://dataform.googleapis.com/v1beta1/projects/" + project_id + "/locations/" + location + "/repositories/health-pipeline-dataform/compilationResults"}
+          auth:
+            type: OAuth2
+          body:
+            workspace: ${"projects/" + project_id + "/locations/" + location + "/repositories/health-pipeline-dataform/workspaces/dev"}
+        result: compilation_result
+
+    - run_dataform:
+        call: http.post
+        args:
+          url: ${"https://dataform.googleapis.com/v1beta1/projects/" + project_id + "/locations/" + location + "/repositories/health-pipeline-dataform/workflowInvocations"}
+          auth:
+            type: OAuth2
+          body:
+            compilationResult: ${compilation_result.body.name}
+        result: dataform_result
+
+    - train_smoking_model:
+        call: googleapis.bigquery.v2.jobs.insert
+        args:
+          projectId: ${project_id}
+          body:
+            configuration:
+              query:
+                useLegacySql: false
+                query: |
+                  CREATE OR REPLACE MODEL `pipeline-smoking-drinking.health_ml.smoking_rf_model`
+                  OPTIONS (
+                    MODEL_TYPE = 'RANDOM_FOREST_CLASSIFIER',
+                    INPUT_LABEL_COLS = ['SMK_stat_type_cd'],
+                    DATA_SPLIT_METHOD = 'AUTO_SPLIT',
+                    NUM_PARALLEL_TREE = 50,
+                    TREE_METHOD = 'HIST',
+                    EARLY_STOP = FALSE
+                  ) AS
+                  SELECT
+                    * EXCEPT(row_id, pipeline_run_id, data_version, processed_at, data_split)
+                  FROM `pipeline-smoking-drinking.health_features.smoking_features`;
+
+    - train_drinking_model:
+        call: googleapis.bigquery.v2.jobs.insert
+        args:
+          projectId: ${project_id}
+          body:
+            configuration:
+              query:
+                useLegacySql: false
+                query: |
+                  CREATE OR REPLACE MODEL `pipeline-smoking-drinking.health_ml.drinking_rf_model`
+                  OPTIONS (
+                    MODEL_TYPE = 'RANDOM_FOREST_CLASSIFIER',
+                    INPUT_LABEL_COLS = ['DRK_YN'],
+                    DATA_SPLIT_METHOD = 'AUTO_SPLIT',
+                    NUM_PARALLEL_TREE = 50,
+                    TREE_METHOD = 'HIST',
+                    EARLY_STOP = FALSE
+                  ) AS
+                  SELECT
+                    * EXCEPT(row_id, pipeline_run_id, data_version, processed_at, data_split)
+                  FROM `pipeline-smoking-drinking.health_features.drinking_features`;
+
+    - insert_smoking_metrics:
+        call: googleapis.bigquery.v2.jobs.insert
+        args:
+          projectId: ${project_id}
+          body:
+            configuration:
+              query:
+                useLegacySql: false
+                query: ${"INSERT INTO `pipeline-smoking-drinking.health_monitoring.model_metrics` SELECT '" + pipeline_run_id + "', 'smoking_rf_model', CURRENT_TIMESTAMP(), accuracy, precision, recall, f1_score, '" + data_version + "' FROM ML.EVALUATE(MODEL `pipeline-smoking-drinking.health_ml.smoking_rf_model`);"}
+
+    - insert_drinking_metrics:
+        call: googleapis.bigquery.v2.jobs.insert
+        args:
+          projectId: ${project_id}
+          body:
+            configuration:
+              query:
+                useLegacySql: false
+                query: ${"INSERT INTO `pipeline-smoking-drinking.health_monitoring.model_metrics` SELECT '" + pipeline_run_id + "', 'drinking_rf_model', CURRENT_TIMESTAMP(), accuracy, precision, recall, f1_score, '" + data_version + "' FROM ML.EVALUATE(MODEL `pipeline-smoking-drinking.health_ml.drinking_rf_model`);"}
+
+    - create_smoking_predictions:
+        call: googleapis.bigquery.v2.jobs.insert
+        args:
+          projectId: ${project_id}
+          body:
+            configuration:
+              query:
+                useLegacySql: false
+                parameterMode: NAMED
+                query: |
+                  CREATE OR REPLACE TABLE `pipeline-smoking-drinking.health_ml.smoking_predictions` AS
+                  SELECT
+                    row_id,
+                    CURRENT_TIMESTAMP() AS prediction_timestamp,
+                    predicted_SMK_stat_type_cd AS predicted_label,
+                    predicted_SMK_stat_type_cd_probs AS predicted_probabilities,
+                    @pipeline_run_id AS pipeline_run_id,
+                    @data_version AS data_version
+                  FROM ML.PREDICT(
+                    MODEL `pipeline-smoking-drinking.health_ml.smoking_rf_model`,
+                    (
+                      SELECT
+                        * EXCEPT(SMK_stat_type_cd, pipeline_run_id, data_version, processed_at, data_split)
+                      FROM `pipeline-smoking-drinking.health_features.smoking_features`
+                    )
+                  );
+                queryParameters:
+                  - name: pipeline_run_id
+                    parameterType:
+                      type: STRING
+                    parameterValue:
+                      value: ${pipeline_run_id}
+                  - name: data_version
+                    parameterType:
+                      type: STRING
+                    parameterValue:
+                      value: ${data_version}
+    - create_drinking_predictions:
+        call: googleapis.bigquery.v2.jobs.insert
+        args:
+          projectId: ${project_id}
+          body:
+            configuration:
+              query:
+                useLegacySql: false
+                parameterMode: NAMED
+                query: |
+                  CREATE OR REPLACE TABLE `pipeline-smoking-drinking.health_ml.drinking_predictions` AS
+                  SELECT
+                    row_id,
+                    CURRENT_TIMESTAMP() AS prediction_timestamp,
+                    predicted_DRK_YN AS predicted_label,
+                    predicted_DRK_YN_probs AS predicted_probabilities,
+                    @pipeline_run_id AS pipeline_run_id,
+                    @data_version AS data_version
+                  FROM ML.PREDICT(
+                    MODEL `pipeline-smoking-drinking.health_ml.drinking_rf_model`,
+                    (
+                      SELECT
+                        * EXCEPT(DRK_YN, pipeline_run_id, data_version, processed_at, data_split)
+                      FROM `pipeline-smoking-drinking.health_features.drinking_features`
+                    )
+                  );
+                queryParameters:
+                  - name: pipeline_run_id
+                    parameterType:
+                      type: STRING
+                    parameterValue:
+                      value: ${pipeline_run_id}
+                  - name: data_version
+                    parameterType:
+                      type: STRING
+                    parameterValue:
+                      value: ${data_version}
+    - log_pipeline_run:
+        call: googleapis.bigquery.v2.jobs.insert
+        args:
+          projectId: ${project_id}
+          body:
+            configuration:
+              query:
+                useLegacySql: false
+                query: ${"INSERT INTO `pipeline-smoking-drinking.health_monitoring.pipeline_runs` (pipeline_run_id, run_timestamp, source_file, raw_row_count, staging_row_count, duplicates_removed, training_status, evaluation_status, final_status) VALUES ('" + pipeline_run_id + "', CURRENT_TIMESTAMP(), '" + source_file + "', 991346, 991320, 26, 'SUCCESS', 'SUCCESS', 'SUCCESS');"}
+
+    - done:
+        return:
+          message: "Pipeline completed successfully"
+          pipeline_run_id: ${pipeline_run_id}

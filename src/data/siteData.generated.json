@@ -1,0 +1,841 @@
+{
+  "generatedAt": "2026-04-01T21:18:32.932Z",
+  "project": {
+    "id": "pipeline-smoking-drinking",
+    "location": "us-central1",
+    "workflow": {
+      "name": "health-pipeline",
+      "state": "ACTIVE",
+      "serviceAccount": "sa-health-orchestrator@pipeline-smoking-drinking.iam.gserviceaccount.com",
+      "revisionId": "000003-40a"
+    },
+    "schedulerJobs": [
+      {
+        "name": "health-pipeline-weekly",
+        "schedule": "0 3 * * 1",
+        "timeZone": "America/Bogota",
+        "state": "ENABLED"
+      }
+    ],
+    "alerting": [
+      "Workflow failure alert configured in Cloud Monitoring",
+      "Missing scheduled run alert configured in Cloud Monitoring"
+    ]
+  },
+  "notebookBaseline": {
+    "rowsRaw": 991346,
+    "rowsAfterIqrCleaning": 639442,
+    "rowsRemovedByIqr": 351904,
+    "duplicatesFound": 14,
+    "smoking": {
+      "accuracy": 0.721,
+      "precision": 0.59,
+      "recall": 0.579,
+      "f1": 0.583
+    },
+    "drinking": {
+      "accuracy": 0.716,
+      "precision": 0.715,
+      "recall": 0.715,
+      "f1": 0.715
+    }
+  },
+  "cloudPipeline": {
+    "stageCounts": {
+      "staging": 991320,
+      "smoking_predictions": 991320,
+      "drinking_predictions": 991320,
+      "drinking_features": 991320,
+      "raw": 991346,
+      "smoking_features": 991320
+    },
+    "duplicatesRemoved": 26,
+    "rowsDroppedInStaging": 26,
+    "preservedPct": 100,
+    "latestRun": {
+      "pipelineRunId": "workflow_run_001",
+      "runTimestamp": "[object Object]",
+      "rawRowCount": 991346,
+      "stagingRowCount": 991320,
+      "trainingStatus": "SUCCESS",
+      "evaluationStatus": "SUCCESS",
+      "finalStatus": "SUCCESS"
+    },
+    "pipelineRuns": [
+      {
+        "pipelineRunId": "workflow_run_001",
+        "runTimestamp": "[object Object]",
+        "sourceFile": "smoking_driking_dataset_Ver01.csv",
+        "rawRowCount": 991346,
+        "stagingRowCount": 991320,
+        "duplicatesRemoved": 26,
+        "finalStatus": "SUCCESS"
+      },
+      {
+        "pipelineRunId": "manual_run_001",
+        "runTimestamp": "[object Object]",
+        "sourceFile": "smoking_driking_dataset_Ver01.csv",
+        "rawRowCount": 991346,
+        "stagingRowCount": 991320,
+        "duplicatesRemoved": 26,
+        "finalStatus": "SUCCESS"
+      }
+    ],
+    "dataQualityChecks": [
+      {
+        "name": "unique_row_id_check",
+        "timestamp": "[object Object]",
+        "status": "PASS",
+        "failedRows": 0,
+        "pipelineRunId": "manual_run_001"
+      },
+      {
+        "name": "rowcount_check",
+        "timestamp": "[object Object]",
+        "status": "PASS",
+        "failedRows": 0,
+        "pipelineRunId": "manual_run_001"
+      },
+      {
+        "name": "valid_values_check",
+        "timestamp": "[object Object]",
+        "status": "PASS",
+        "failedRows": 0,
+        "pipelineRunId": "manual_run_001"
+      }
+    ],
+    "promotions": [
+      {
+        "modelName": "smoking_rf_model",
+        "status": "APPROVED",
+        "notes": "Meets baseline performance",
+        "pipelineRunId": "manual_run_001",
+        "promotionTimestamp": "[object Object]"
+      },
+      {
+        "modelName": "drinking_rf_model",
+        "status": "APPROVED",
+        "notes": "Meets baseline performance",
+        "pipelineRunId": "manual_run_001",
+        "promotionTimestamp": "[object Object]"
+      }
+    ]
+  },
+  "dataset": {
+    "observations": 991346,
+    "variables": 24,
+    "completeness": "100% complete",
+    "dtypes": {
+      "int64": 3,
+      "float64": 19,
+      "object": 2
+    },
+    "sexDistribution": [
+      {
+        "label": "Male",
+        "count": 526415,
+        "pct": 53.1
+      },
+      {
+        "label": "Female",
+        "count": 464931,
+        "pct": 46.9
+      }
+    ],
+    "smokingDistribution": [
+      {
+        "label": "Never",
+        "count": 602441,
+        "pct": 60.8
+      },
+      {
+        "label": "Quit",
+        "count": 174951,
+        "pct": 17.6
+      },
+      {
+        "label": "Still smoke",
+        "count": 213954,
+        "pct": 21.6
+      }
+    ],
+    "drinkingDistribution": [
+      {
+        "label": "Non-drinkers",
+        "count": 495858,
+        "pct": 50
+      },
+      {
+        "label": "Drinkers",
+        "count": 495488,
+        "pct": 50
+      }
+    ],
+    "ageByDrinking": [
+      {
+        "age": 20,
+        "label": "Non-drinkers",
+        "count": 7936
+      },
+      {
+        "age": 20,
+        "label": "Drinkers",
+        "count": 14035
+      },
+      {
+        "age": 25,
+        "label": "Non-drinkers",
+        "count": 21083
+      },
+      {
+        "age": 25,
+        "label": "Drinkers",
+        "count": 43287
+      },
+      {
+        "age": 30,
+        "label": "Non-drinkers",
+        "count": 26218
+      },
+      {
+        "age": 30,
+        "label": "Drinkers",
+        "count": 51382
+      },
+      {
+        "age": 35,
+        "label": "Non-drinkers",
+        "count": 28506
+      },
+      {
+        "age": 35,
+        "label": "Drinkers",
+        "count": 56220
+      },
+      {
+        "age": 40,
+        "label": "Non-drinkers",
+        "count": 52199
+      },
+      {
+        "age": 40,
+        "label": "Drinkers",
+        "count": 78186
+      },
+      {
+        "age": 45,
+        "label": "Non-drinkers",
+        "count": 52110
+      },
+      {
+        "age": 45,
+        "label": "Drinkers",
+        "count": 66245
+      },
+      {
+        "age": 50,
+        "label": "Non-drinkers",
+        "count": 65322
+      },
+      {
+        "age": 50,
+        "label": "Drinkers",
+        "count": 64112
+      },
+      {
+        "age": 55,
+        "label": "Non-drinkers",
+        "count": 63239
+      },
+      {
+        "age": 55,
+        "label": "Drinkers",
+        "count": 47984
+      },
+      {
+        "age": 60,
+        "label": "Non-drinkers",
+        "count": 67722
+      },
+      {
+        "age": 60,
+        "label": "Drinkers",
+        "count": 38341
+      },
+      {
+        "age": 65,
+        "label": "Non-drinkers",
+        "count": 36689
+      },
+      {
+        "age": 65,
+        "label": "Drinkers",
+        "count": 16272
+      },
+      {
+        "age": 70,
+        "label": "Non-drinkers",
+        "count": 38329
+      },
+      {
+        "age": 70,
+        "label": "Drinkers",
+        "count": 12337
+      },
+      {
+        "age": 75,
+        "label": "Non-drinkers",
+        "count": 20657
+      },
+      {
+        "age": 75,
+        "label": "Drinkers",
+        "count": 4676
+      },
+      {
+        "age": 80,
+        "label": "Non-drinkers",
+        "count": 12843
+      },
+      {
+        "age": 80,
+        "label": "Drinkers",
+        "count": 2125
+      },
+      {
+        "age": 85,
+        "label": "Non-drinkers",
+        "count": 3005
+      },
+      {
+        "age": 85,
+        "label": "Drinkers",
+        "count": 286
+      }
+    ],
+    "ageBySmoking": [
+      {
+        "age": 20,
+        "label": "Never",
+        "count": 15334
+      },
+      {
+        "age": 20,
+        "label": "Quit",
+        "count": 1228
+      },
+      {
+        "age": 20,
+        "label": "Still smoke",
+        "count": 5409
+      },
+      {
+        "age": 25,
+        "label": "Never",
+        "count": 42800
+      },
+      {
+        "age": 25,
+        "label": "Quit",
+        "count": 5100
+      },
+      {
+        "age": 25,
+        "label": "Still smoke",
+        "count": 16470
+      },
+      {
+        "age": 30,
+        "label": "Never",
+        "count": 45880
+      },
+      {
+        "age": 30,
+        "label": "Quit",
+        "count": 9863
+      },
+      {
+        "age": 30,
+        "label": "Still smoke",
+        "count": 21857
+      },
+      {
+        "age": 35,
+        "label": "Never",
+        "count": 41972
+      },
+      {
+        "age": 35,
+        "label": "Quit",
+        "count": 14539
+      },
+      {
+        "age": 35,
+        "label": "Still smoke",
+        "count": 28215
+      },
+      {
+        "age": 40,
+        "label": "Never",
+        "count": 71678
+      },
+      {
+        "age": 40,
+        "label": "Quit",
+        "count": 22094
+      },
+      {
+        "age": 40,
+        "label": "Still smoke",
+        "count": 36613
+      },
+      {
+        "age": 45,
+        "label": "Never",
+        "count": 66419
+      },
+      {
+        "age": 45,
+        "label": "Quit",
+        "count": 22203
+      },
+      {
+        "age": 45,
+        "label": "Still smoke",
+        "count": 29733
+      },
+      {
+        "age": 50,
+        "label": "Never",
+        "count": 77475
+      },
+      {
+        "age": 50,
+        "label": "Quit",
+        "count": 24512
+      },
+      {
+        "age": 50,
+        "label": "Still smoke",
+        "count": 27447
+      },
+      {
+        "age": 55,
+        "label": "Never",
+        "count": 68243
+      },
+      {
+        "age": 55,
+        "label": "Quit",
+        "count": 23016
+      },
+      {
+        "age": 55,
+        "label": "Still smoke",
+        "count": 19964
+      },
+      {
+        "age": 60,
+        "label": "Never",
+        "count": 67810
+      },
+      {
+        "age": 60,
+        "label": "Quit",
+        "count": 22670
+      },
+      {
+        "age": 60,
+        "label": "Still smoke",
+        "count": 15583
+      },
+      {
+        "age": 65,
+        "label": "Never",
+        "count": 35129
+      },
+      {
+        "age": 65,
+        "label": "Quit",
+        "count": 11760
+      },
+      {
+        "age": 65,
+        "label": "Still smoke",
+        "count": 6072
+      },
+      {
+        "age": 70,
+        "label": "Never",
+        "count": 36036
+      },
+      {
+        "age": 70,
+        "label": "Quit",
+        "count": 10464
+      },
+      {
+        "age": 70,
+        "label": "Still smoke",
+        "count": 4166
+      },
+      {
+        "age": 75,
+        "label": "Never",
+        "count": 19080
+      },
+      {
+        "age": 75,
+        "label": "Quit",
+        "count": 4635
+      },
+      {
+        "age": 75,
+        "label": "Still smoke",
+        "count": 1618
+      },
+      {
+        "age": 80,
+        "label": "Never",
+        "count": 11780
+      },
+      {
+        "age": 80,
+        "label": "Quit",
+        "count": 2467
+      },
+      {
+        "age": 80,
+        "label": "Still smoke",
+        "count": 721
+      },
+      {
+        "age": 85,
+        "label": "Never",
+        "count": 2805
+      },
+      {
+        "age": 85,
+        "label": "Quit",
+        "count": 400
+      },
+      {
+        "age": 85,
+        "label": "Still smoke",
+        "count": 86
+      }
+    ],
+    "sampleRow": {
+      "sex": "Male",
+      "age": 35,
+      "height": 170,
+      "weight": 75,
+      "waistline": 90,
+      "sight_left": 1,
+      "sight_right": 1,
+      "hear_left": 1,
+      "hear_right": 1,
+      "SBP": 120,
+      "DBP": 80,
+      "BLDS": 99,
+      "tot_chole": 193,
+      "HDL_chole": 48,
+      "LDL_chole": 126,
+      "triglyceride": 92,
+      "hemoglobin": 17.1,
+      "urine_protein": 1,
+      "serum_creatinine": 1,
+      "SGOT_AST": 21,
+      "SGOT_ALT": 35,
+      "gamma_GTP": 40,
+      "SMK_stat_type_cd": 1,
+      "DRK_YN": "Y"
+    }
+  },
+  "models": {
+    "latestMetrics": {
+      "drinking_rf_model": {
+        "pipelineRunId": "manual_run_001",
+        "modelName": "drinking_rf_model",
+        "dataVersion": "v1",
+        "evaluationTimestamp": "[object Object]",
+        "accuracy": 0.7330621962106934,
+        "precision": 0.7245222929936306,
+        "recall": 0.7357994744289469,
+        "f1": 0.7301173402868318
+      },
+      "smoking_rf_model": {
+        "pipelineRunId": "manual_run_001",
+        "modelName": "smoking_rf_model",
+        "dataVersion": "v1",
+        "evaluationTimestamp": "[object Object]",
+        "accuracy": 0.7027564931834014,
+        "precision": 0.6032484621651021,
+        "recall": 0.5974271105166236,
+        "f1": 0.5963957021702117
+      }
+    },
+    "metricHistory": [
+      {
+        "pipelineRunId": "workflow_run_001",
+        "modelName": "drinking_rf_model",
+        "dataVersion": "v1",
+        "evaluationTimestamp": "[object Object]",
+        "accuracy": 0.7365340740005952,
+        "precision": 0.7272366593929775,
+        "recall": 0.7410551849605822,
+        "f1": 0.7340808970764918
+      },
+      {
+        "pipelineRunId": "workflow_run_001",
+        "modelName": "smoking_rf_model",
+        "dataVersion": "v1",
+        "evaluationTimestamp": "[object Object]",
+        "accuracy": 0.7021594188476465,
+        "precision": 0.6021509584780405,
+        "recall": 0.5958535913917986,
+        "f1": 0.5949243505630731
+      },
+      {
+        "pipelineRunId": "manual_run_001_fix",
+        "modelName": "smoking_rf_model",
+        "dataVersion": "v1",
+        "evaluationTimestamp": "[object Object]",
+        "accuracy": 0.7027564931834014,
+        "precision": 0.6032484621651021,
+        "recall": 0.5974271105166236,
+        "f1": 0.5963957021702117
+      },
+      {
+        "pipelineRunId": "manual_run_001",
+        "modelName": "drinking_rf_model",
+        "dataVersion": "v1",
+        "evaluationTimestamp": "[object Object]",
+        "accuracy": 0.7330621962106934,
+        "precision": 0.7245222929936306,
+        "recall": 0.7357994744289469,
+        "f1": 0.7301173402868318
+      },
+      {
+        "pipelineRunId": "manual_run_001",
+        "modelName": "smoking_rf_model",
+        "dataVersion": "v1",
+        "evaluationTimestamp": "[object Object]",
+        "accuracy": 0.7027564931834014,
+        "precision": 0.6032484621651021,
+        "recall": 0.5974271105166236,
+        "f1": 0.5963957021702117
+      }
+    ],
+    "smokingFeatureImportance": [
+      {
+        "feature": "waistline",
+        "weight": 105009,
+        "gain": 2.4345391754683012,
+        "cover": 267.1506386551343
+      },
+      {
+        "feature": "BLDS",
+        "weight": 97249,
+        "gain": 2.456979406056761,
+        "cover": 211.9712411043846
+      },
+      {
+        "feature": "triglyceride",
+        "weight": 97010,
+        "gain": 3.715895441831173,
+        "cover": 425.2319208164505
+      },
+      {
+        "feature": "SBP",
+        "weight": 90342,
+        "gain": 2.4303702557180378,
+        "cover": 343.4156711665144
+      },
+      {
+        "feature": "tot_chole",
+        "weight": 86658,
+        "gain": 2.6612167960782216,
+        "cover": 205.26635017324256
+      },
+      {
+        "feature": "HDL_chole",
+        "weight": 86580,
+        "gain": 3.4769387063632307,
+        "cover": 473.58737919119017
+      },
+      {
+        "feature": "hemoglobin",
+        "weight": 82664,
+        "gain": 12.276635377970608,
+        "cover": 688.2963119894473
+      },
+      {
+        "feature": "LDL_chole",
+        "weight": 81131,
+        "gain": 3.1707340408803284,
+        "cover": 316.90009984007946
+      },
+      {
+        "feature": "gamma_GTP",
+        "weight": 80039,
+        "gain": 7.790459070437693,
+        "cover": 871.980123345096
+      },
+      {
+        "feature": "DBP",
+        "weight": 77520,
+        "gain": 2.5011678882414157,
+        "cover": 223.13154267873043
+      }
+    ],
+    "drinkingFeatureImportance": [
+      {
+        "feature": "waistline",
+        "weight": 127743,
+        "gain": 2.154415576638053,
+        "cover": 130.51100647393594
+      },
+      {
+        "feature": "BLDS",
+        "weight": 109951,
+        "gain": 2.4602739309989783,
+        "cover": 130.02465643786778
+      },
+      {
+        "feature": "triglyceride",
+        "weight": 109406,
+        "gain": 2.910768629233141,
+        "cover": 191.67947827358645
+      },
+      {
+        "feature": "SBP",
+        "weight": 101358,
+        "gain": 2.301338587354308,
+        "cover": 128.0066990272105
+      },
+      {
+        "feature": "SGOT_ALT",
+        "weight": 95822,
+        "gain": 5.55235287041654,
+        "cover": 508.7138183298199
+      },
+      {
+        "feature": "hemoglobin",
+        "weight": 93431,
+        "gain": 2.7542828384282374,
+        "cover": 163.08246192377263
+      },
+      {
+        "feature": "tot_chole",
+        "weight": 92679,
+        "gain": 2.4955245304479408,
+        "cover": 126.1989501397296
+      },
+      {
+        "feature": "HDL_chole",
+        "weight": 89930,
+        "gain": 10.07909883965559,
+        "cover": 875.7183086845324
+      },
+      {
+        "feature": "LDL_chole",
+        "weight": 87634,
+        "gain": 3.2663645203140304,
+        "cover": 243.1267430449369
+      },
+      {
+        "feature": "DBP",
+        "weight": 87147,
+        "gain": 2.534032624332349,
+        "cover": 161.04890587168808
+      }
+    ],
+    "smokingConfusionMatrix": {
+      "labels": [
+        "1",
+        "2",
+        "3"
+      ],
+      "matrix": [
+        {
+          "expected": "1",
+          "values": {
+            "1": 5157,
+            "2": 375,
+            "3": 553
+          }
+        },
+        {
+          "expected": "2",
+          "values": {
+            "1": 554,
+            "2": 633,
+            "3": 653
+          }
+        },
+        {
+          "expected": "3",
+          "values": {
+            "1": 503,
+            "2": 355,
+            "3": 1266
+          }
+        }
+      ]
+    },
+    "drinkingConfusionMatrix": {
+      "labels": [
+        "N",
+        "Y"
+      ],
+      "matrix": [
+        {
+          "expected": "N",
+          "values": {
+            "N": 3759,
+            "Y": 1375
+          }
+        },
+        {
+          "expected": "Y",
+          "values": {
+            "N": 1281,
+            "Y": 3666
+          }
+        }
+      ]
+    },
+    "deploymentNotes": [
+      "Models are trained in BigQuery ML as RANDOM_FOREST_CLASSIFIER assets.",
+      "The workflow retrains the models after Dataform finishes staging and feature generation.",
+      "Prediction tables are refreshed in BigQuery and can be consumed by downstream dashboards."
+    ],
+    "playgroundDefaults": {
+      "sex": "M",
+      "age": 45,
+      "height": 180,
+      "weight": 65,
+      "waistline": 73,
+      "sight_left": 1,
+      "sight_right": 0.7,
+      "hear_left": 1,
+      "hear_right": 1,
+      "SBP": 120,
+      "DBP": 84,
+      "BLDS": 82,
+      "tot_chole": 187,
+      "HDL_chole": 47,
+      "LDL_chole": 124,
+      "triglyceride": 81,
+      "hemoglobin": 13.7,
+      "urine_protein": 1,
+      "serum_creatinine": 0.9,
+      "SGOT_AST": 21,
+      "SGOT_ALT": 12,
+      "gamma_GTP": 17,
+      "DRK_YN": "Y",
+      "SMK_stat_type_cd": 3
+    }
+  }
+}

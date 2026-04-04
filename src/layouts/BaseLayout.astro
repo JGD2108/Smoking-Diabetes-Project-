@@ -1,0 +1,43 @@
+---
+import "../styles/global.css";
+
+interface Props {
+  title: string;
+  description?: string;
+}
+
+const { title, description = "" } = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+  </head>
+  <body>
+    <div class="page-shell">
+      <slot />
+    </div>
+
+    <script is:inline>
+      const root = document.documentElement;
+      const storedTheme = localStorage.getItem("theme");
+      const preferredDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+      const initialTheme = storedTheme || (preferredDark ? "dark" : "light");
+      root.dataset.theme = initialTheme;
+
+      document.addEventListener("click", (event) => {
+        const target = event.target;
+        if (!(target instanceof HTMLElement)) return;
+        if (!target.closest("[data-theme-toggle]")) return;
+
+        const nextTheme = root.dataset.theme === "dark" ? "light" : "dark";
+        root.dataset.theme = nextTheme;
+        localStorage.setItem("theme", nextTheme);
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,12 @@
+node_modules/
+dist/
+dist-pages/
+.astro/
+.pages-build/
+.env
+.env.*
+coverage/
+.astro-dev.log
+.astro-preview.log
+.astro-preview.err
+smoking_driking_dataset_Ver01.csv
