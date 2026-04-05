@@ -4,59 +4,59 @@ const deploymentTarget = import.meta.env.PUBLIC_DEPLOYMENT_TARGET ?? "server";
 const isStaticDeployment = deploymentTarget === "github-pages";
 
 const smokingContextLabels = {
-  1: "Never",
-  2: "Quit",
-  3: "Still smoke",
+  1: "Never smoker",
+  2: "Former smoker",
+  3: "Current smoker",
 };
 
 const drinkingLabels = {
-  Y: "Drinker",
-  N: "Non-drinker",
+  Y: "Alcohol use reported",
+  N: "Alcohol use not reported",
 };
 
 const fieldGroups = [
   {
-    title: "Demographics",
+    title: "Anthropometric and demographic variables",
     fields: [
       ["sex", "Sex", "select"],
       ["age", "Age", "number"],
       ["height", "Height (cm)", "number"],
       ["weight", "Weight (kg)", "number"],
-      ["waistline", "Waistline", "number"],
+      ["waistline", "Waist circumference (cm)", "number"],
     ],
   },
   {
-    title: "Senses and vitals",
+    title: "Sensory and hemodynamic measures",
     fields: [
-      ["sight_left", "Sight left", "number"],
-      ["sight_right", "Sight right", "number"],
-      ["hear_left", "Hear left", "number"],
-      ["hear_right", "Hear right", "number"],
-      ["SBP", "SBP", "number"],
-      ["DBP", "DBP", "number"],
-      ["BLDS", "BLDS", "number"],
+      ["sight_left", "Left-eye acuity", "number"],
+      ["sight_right", "Right-eye acuity", "number"],
+      ["hear_left", "Left-ear screening", "number"],
+      ["hear_right", "Right-ear screening", "number"],
+      ["SBP", "Systolic blood pressure", "number"],
+      ["DBP", "Diastolic blood pressure", "number"],
+      ["BLDS", "Fasting glucose", "number"],
     ],
   },
   {
-    title: "Lab signals",
+    title: "Laboratory biomarkers",
     fields: [
       ["tot_chole", "Total cholesterol", "number"],
       ["HDL_chole", "HDL cholesterol", "number"],
       ["LDL_chole", "LDL cholesterol", "number"],
       ["triglyceride", "Triglycerides", "number"],
       ["hemoglobin", "Hemoglobin", "number"],
-      ["urine_protein", "Urine protein", "number"],
+      ["urine_protein", "Urine protein score", "number"],
       ["serum_creatinine", "Serum creatinine", "number"],
       ["SGOT_AST", "SGOT AST", "number"],
       ["SGOT_ALT", "SGOT ALT", "number"],
-      ["gamma_GTP", "Gamma GTP", "number"],
+      ["gamma_GTP", "Gamma-GTP", "number"],
     ],
   },
   {
-    title: "Lifestyle context",
+    title: "Behavioral context variables",
     fields: [
-      ["DRK_YN", "Drinking context", "select"],
-      ["SMK_stat_type_cd", "Smoking context", "select"],
+      ["DRK_YN", "Known alcohol-use context", "select"],
+      ["SMK_stat_type_cd", "Known smoking-status context", "select"],
     ],
   },
 ];
@@ -100,8 +100,9 @@ const presets = {
 const samplePopulation = [
   {
     id: "young_social_smoker",
-    name: "Young social smoker",
-    blurb: "Male, early 30s, social drinking, mildly elevated liver markers.",
+    name: "Profile A",
+    blurb:
+      "Male, 30 years, estimated normal-high BMI, mildly elevated hepatic markers, and self-reported alcohol use.",
     values: {
       ...defaults,
       sex: "M",
@@ -132,8 +133,9 @@ const samplePopulation = [
   },
   {
     id: "former_smoker_office_worker",
-    name: "Former smoker office worker",
-    blurb: "Middle-aged male, quit smoking, metabolic pressure starting to rise.",
+    name: "Profile B",
+    blurb:
+      "Male, 48 years, former smoker, mild central adiposity, and moderately elevated glycemic and lipid markers.",
     values: {
       ...defaults,
       sex: "M",
@@ -164,8 +166,9 @@ const samplePopulation = [
   },
   {
     id: "healthy_retired_woman",
-    name: "Healthy retired woman",
-    blurb: "Older female profile with low waistline, normal glucose, and low gamma GTP.",
+    name: "Profile C",
+    blurb:
+      "Female, 67 years, low waist circumference, normoglycemic profile, and low hepatic enzyme burden.",
     values: {
       ...defaults,
       sex: "F",
@@ -196,8 +199,9 @@ const samplePopulation = [
   },
   {
     id: "metabolic_high_risk",
-    name: "Metabolic high-risk profile",
-    blurb: "Male, 50s, abdominal obesity, higher blood pressure, glucose, and triglycerides.",
+    name: "Profile D",
+    blurb:
+      "Male, 54 years, abdominal obesity, elevated blood pressure, hypertriglyceridemia, and concurrent alcohol exposure.",
     values: {
       ...defaults,
       sex: "M",
@@ -228,8 +232,9 @@ const samplePopulation = [
   },
   {
     id: "balanced_urban_professional",
-    name: "Balanced urban professional",
-    blurb: "Female, late 30s, moderate vitals, social drinker, no smoking history.",
+    name: "Profile E",
+    blurb:
+      "Female, 39 years, moderate cardiometabolic profile, reported alcohol use, and no smoking history.",
     values: {
       ...defaults,
       sex: "F",
@@ -360,16 +365,12 @@ function topProbability(result) {
   return result.probabilities?.[0]?.prob ?? 0;
 }
 
-function summarize(rows, selector) {
-  const counts = rows.reduce((acc, row) => {
-    const key = selector(row);
-    acc[key] = (acc[key] ?? 0) + 1;
-    return acc;
-  }, {});
+function keyMeasures(values) {
+  return `Waistline ${values.waistline} cm; BLDS ${values.BLDS} mg/dL; triglyceride ${values.triglyceride} mg/dL; gamma-GTP ${values.gamma_GTP} U/L.`;
+}
 
-  return Object.entries(counts)
-    .map(([label, count]) => `${label}: ${count}`)
-    .join(" | ");
+function contextSummary(values) {
+  return `Context: ${labelForDrinking(values.DRK_YN)}; ${labelForSmoking(values.SMK_stat_type_cd)}.`;
 }
 
 const staticPopulationRows = samplePopulation
@@ -378,185 +379,102 @@ const staticPopulationRows = samplePopulation
     prediction: staticPopulationPredictions[person.id],
   }))
   .filter((row) => row.prediction);
-
-const staticSmokingSummary = summarize(
-  staticPopulationRows,
-  (row) => labelForSmoking(row.prediction.smoking.label),
-);
-const staticDrinkingSummary = summarize(
-  staticPopulationRows,
-  (row) => labelForDrinking(row.prediction.drinking.label),
-);
 ---
 
-<section class="playground">
-  <div class="playground-intro">
-    <h3>Prediction explorer</h3>
+<section class="explorer-block">
+  <div class="subsection-block">
+    <h3>7.1 Representative health profiles</h3>
     <p>
-      Smoking and drinking often appear together in the same health profile, so the detailed view
-      includes both lifestyle context fields to keep the results grounded in the broader picture.
+      To illustrate model behavior in a controlled manner, five representative health profiles are
+      evaluated below. Each row summarizes a clinically interpretable profile together with the
+      corresponding probabilistic outputs from the smoking and drinking classifiers.
     </p>
-    {isStaticDeployment && (
-      <p class="playground-hint">
-        This published version highlights a ready-made five-person comparison for a faster
-        experience.
-      </p>
+
+    {!isStaticDeployment && (
+      <button type="button" class="text-button" id="run-population-button">
+        Evaluate representative profiles
+      </button>
     )}
+
+    {!isStaticDeployment && (
+      <div id="population-status" class="form-status" aria-live="polite"></div>
+    )}
+
+    <div id="population-results-shell">
+      <table class="academic-table prediction-table">
+        <caption>Table 4. Model prediction results for representative health profiles</caption>
+        <thead>
+          <tr>
+            <th>Profile</th>
+            <th>Clinical description</th>
+            <th>Key indicators and known context</th>
+            <th>Smoking estimate</th>
+            <th>Drinking estimate</th>
+          </tr>
+        </thead>
+        <tbody id="population-results-body">
+          {staticPopulationRows.map(({ person, prediction }) => (
+            <tr>
+              <td class="prediction-profile">{person.name}</td>
+              <td>{person.blurb}</td>
+              <td>
+                <div class="prediction-stack prediction-measures">
+                  <span>{keyMeasures(person.values)}</span>
+                  <span>{contextSummary(person.values)}</span>
+                </div>
+              </td>
+              <td>
+                <div class="prediction-stack prediction-estimate">
+                  <strong>{labelForSmoking(prediction.smoking.label)}</strong>
+                  <span>{(topProbability(prediction.smoking) * 100).toFixed(1)}% probability</span>
+                </div>
+              </td>
+              <td>
+                <div class="prediction-stack prediction-estimate">
+                  <strong>{labelForDrinking(prediction.drinking.label)}</strong>
+                  <span>{(topProbability(prediction.drinking) * 100).toFixed(1)}% probability</span>
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+
+    <p class="table-note">
+      <strong>Note.</strong> Predictions shown are probabilistic estimates derived from
+      population-level patterns. They do not constitute medical diagnosis or clinical advice.
+    </p>
   </div>
 
-  <section class="population-panel">
-    <div class="population-head">
-      <div class="population-copy">
-        <p class="result-kicker">Quick Compare</p>
-        <h3>Run a sample population of 5 people</h3>
-        <p>
-          Start with a curated mini-population. It compares five realistic profiles and shows the
-          most important outputs in one table.
-        </p>
-      </div>
-      {!isStaticDeployment && (
-        <button type="button" class="primary-button" id="run-population-button">
-          Simulate 5 people
-        </button>
-      )}
-    </div>
-
-    <div class="persona-grid">
-      {samplePopulation.map((person) => (
-        <article class="persona-card">
-          <div class="persona-card-head">
-            <div>
-              <h4>{person.name}</h4>
-              <p>{person.blurb}</p>
-            </div>
-            {!isStaticDeployment && (
-              <button
-                type="button"
-                class="preset-button persona-load-button"
-                data-persona={person.id}
-              >
-                Use in form
-              </button>
-            )}
-          </div>
-
-          <div class="persona-meta">
-            <span>{person.values.sex === "M" ? "Male" : "Female"}</span>
-            <span>{person.values.age} years</span>
-            <span>Waist {person.values.waistline}</span>
-            <span>BLDS {person.values.BLDS}</span>
-            <span>Gamma {person.values.gamma_GTP}</span>
-            <span>Drinking context {labelForDrinking(person.values.DRK_YN)}</span>
-            <span>Smoking context {labelForSmoking(person.values.SMK_stat_type_cd)}</span>
-          </div>
-        </article>
-      ))}
-    </div>
+  <div class="subsection-block">
+    <h3>7.2 Interactive individual estimation</h3>
+    <p>
+      A server-backed estimation form is provided below for case-by-case exploration. The form
+      preserves the same variable structure used in the deployed models so that the estimated class
+      probabilities remain consistent with the analytical workflow documented in this report.
+    </p>
 
     {isStaticDeployment ? (
-      <>
-        <div class="playground-status">
-          Showing a precomputed sample based on the current model snapshot.
-        </div>
-
-        <div class="population-summary-grid">
-          <article class="population-stat">
-            <p class="result-kicker">Smoking split</p>
-            <strong>{staticSmokingSummary}</strong>
-          </article>
-          <article class="population-stat">
-            <p class="result-kicker">Drinking split</p>
-            <strong>{staticDrinkingSummary}</strong>
-          </article>
-        </div>
-
-        <div class="population-results-shell">
-          <div class="table-scroll">
-            <table class="population-table">
-              <thead>
-                <tr>
-                  <th>Profile</th>
-                  <th>Key inputs</th>
-                  <th>Drinking context</th>
-                  <th>Smoking context</th>
-                  <th>Predicted smoking</th>
-                  <th>Smoking confidence</th>
-                  <th>Predicted drinking</th>
-                  <th>Drinking confidence</th>
-                </tr>
-              </thead>
-              <tbody>
-                {staticPopulationRows.map(({ person, prediction }) => (
-                  <tr>
-                    <td>
-                      <strong>{person.name}</strong>
-                      <div class="population-subtle">{person.blurb}</div>
-                    </td>
-                    <td>
-                      {person.values.sex === "M" ? "Male" : "Female"}, {person.values.age}y
-                      <br />
-                      Waist {person.values.waistline}, BLDS {person.values.BLDS}, Gamma{" "}
-                      {person.values.gamma_GTP}
-                    </td>
-                    <td>{labelForDrinking(person.values.DRK_YN)}</td>
-                    <td>{labelForSmoking(person.values.SMK_stat_type_cd)}</td>
-                    <td>
-                      <strong>{labelForSmoking(prediction.smoking.label)}</strong>
-                    </td>
-                    <td>{(topProbability(prediction.smoking) * 100).toFixed(1)}%</td>
-                    <td>
-                      <strong>{labelForDrinking(prediction.drinking.label)}</strong>
-                    </td>
-                    <td>{(topProbability(prediction.drinking) * 100).toFixed(1)}%</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </>
+      <div class="paper-note">
+        The GitHub Pages deployment is static and therefore presents only the representative-profile
+        table. The full interactive estimator remains available when the Astro server endpoint is
+        hosted in an environment capable of executing prediction requests.
+      </div>
     ) : (
       <>
-        <div id="population-status" class="playground-status" aria-live="polite"></div>
-        <div id="population-summary" class="population-summary-grid"></div>
-        <div id="population-results" class="population-results-shell" hidden></div>
-      </>
-    )}
-  </section>
-
-  <section class="manual-panel">
-    <div class="manual-head">
-      <div>
-        <p class="result-kicker">Detailed View</p>
-        <h3>Explore an individual profile</h3>
-      </div>
-      {!isStaticDeployment && (
         <div class="preset-row">
-          <button type="button" class="preset-button" data-preset="baseline">Typical profile</button>
-          <button type="button" class="preset-button" data-preset="lowerRisk">
-            Lower-risk profile
+          <button type="button" class="text-button" data-preset="baseline">
+            Load baseline profile
           </button>
-          <button type="button" class="preset-button" data-preset="higherRisk">
-            Higher-risk profile
+          <button type="button" class="text-button" data-preset="lowerRisk">
+            Load lower-risk profile
+          </button>
+          <button type="button" class="text-button" data-preset="higherRisk">
+            Load higher-risk profile
           </button>
         </div>
-      )}
-    </div>
 
-    {isStaticDeployment ? (
-      <article class="notes-card playground-disabled">
-        <h3>Expanded interaction is available in the live version</h3>
-        <p>
-          This published version focuses on the five-profile comparison so visitors can review the
-          results quickly and clearly.
-        </p>
-        <p>
-          The full interactive form remains available in the live app environment used for direct
-          prediction requests.
-        </p>
-      </article>
-    ) : (
-      <>
         <form id="playground-form" class="playground-form">
           {fieldGroups.map((group) => (
             <fieldset class="playground-group">
@@ -572,14 +490,14 @@ const staticDrinkingSummary = summarize(
                       </select>
                     ) : type === "select" && name === "DRK_YN" ? (
                       <select name={name}>
-                        <option value="Y" selected={defaults[name] === "Y"}>Y</option>
-                        <option value="N" selected={defaults[name] === "N"}>N</option>
+                        <option value="Y" selected={defaults[name] === "Y"}>Alcohol use reported</option>
+                        <option value="N" selected={defaults[name] === "N"}>Alcohol use not reported</option>
                       </select>
                     ) : type === "select" ? (
                       <select name={name}>
-                        <option value="1" selected={defaults[name] === 1}>1 - never</option>
-                        <option value="2" selected={defaults[name] === 2}>2 - quit</option>
-                        <option value="3" selected={defaults[name] === 3}>3 - still smoking</option>
+                        <option value="1" selected={defaults[name] === 1}>Never smoker</option>
+                        <option value="2" selected={defaults[name] === 2}>Former smoker</option>
+                        <option value="3" selected={defaults[name] === 3}>Current smoker</option>
                       </select>
                     ) : (
                       <input type="number" step="any" name={name} value={defaults[name]} />
@@ -590,32 +508,30 @@ const staticDrinkingSummary = summarize(
             </fieldset>
           ))}
 
-          <div class="playground-actions">
-            <button type="submit" class="primary-button">Run prediction</button>
-            <p class="playground-hint">
-              The quick comparison above is the easiest way to start. Use this detailed form for
-              case-by-case exploration.
-            </p>
+          <div class="form-actions">
+            <button type="submit" class="submit-button">
+              Submit profile for probabilistic estimation
+            </button>
           </div>
         </form>
 
-        <div id="playground-status" class="playground-status" aria-live="polite"></div>
+        <div id="playground-status" class="form-status" aria-live="polite"></div>
         <div id="playground-results" class="playground-results"></div>
       </>
     )}
-  </section>
+  </div>
 </section>
 
 <script define:vars={{ presets, samplePopulation, isStaticDeployment }}>
   const smokingLabels = {
-    1: "Never",
-    2: "Quit",
-    3: "Still smoke",
+    1: "Never smoker",
+    2: "Former smoker",
+    3: "Current smoker",
   };
 
   const drinkingLabels = {
-    Y: "Drinker",
-    N: "Non-drinker",
+    Y: "Alcohol use reported",
+    N: "Alcohol use not reported",
   };
 
   if (!isStaticDeployment) {
@@ -623,11 +539,9 @@ const staticDrinkingSummary = summarize(
     const status = document.querySelector("#playground-status");
     const results = document.querySelector("#playground-results");
     const presetButtons = document.querySelectorAll("[data-preset]");
-    const personaButtons = document.querySelectorAll("[data-persona]");
     const runPopulationButton = document.querySelector("#run-population-button");
     const populationStatus = document.querySelector("#population-status");
-    const populationSummary = document.querySelector("#population-summary");
-    const populationResults = document.querySelector("#population-results");
+    const populationResultsBody = document.querySelector("#population-results-body");
 
     function setStatus(message, isError = false) {
       status.textContent = message;
@@ -667,13 +581,26 @@ const staticDrinkingSummary = summarize(
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || "Prediction request failed");
+        throw new Error(data.error || "Prediction request failed.");
       }
 
       return data;
     }
 
+    function topProbability(result) {
+      return result.probabilities?.[0]?.prob ?? 0;
+    }
+
+    function keyMeasures(values) {
+      return `Waistline ${values.waistline} cm; BLDS ${values.BLDS} mg/dL; triglyceride ${values.triglyceride} mg/dL; gamma-GTP ${values.gamma_GTP} U/L.`;
+    }
+
+    function contextSummary(values) {
+      return `Context: ${labelForDrinking(values.DRK_YN)}; ${labelForSmoking(values.SMK_stat_type_cd)}.`;
+    }
+
     function resultCard(title, result, labelMap) {
+      const winner = labelMap[result.label] ?? result.label;
       const probabilities = result.probabilities
         .map((entry) => {
           const label = labelMap[entry.label] ?? entry.label;
@@ -686,129 +613,61 @@ const staticDrinkingSummary = summarize(
         })
         .join("");
 
-      const winner = labelMap[result.label] ?? result.label;
-
       return `
         <article class="result-card">
-          <p class="result-kicker">${title}</p>
-          <h4>${winner}</h4>
+          <h4>${title}</h4>
+          <p class="result-winner">${winner}</p>
           <ul>${probabilities}</ul>
         </article>
       `;
     }
 
-    function topProbability(result) {
-      return result.probabilities?.[0]?.prob ?? 0;
-    }
-
-    function renderPopulationSummary(rows) {
-      const smokingCounts = rows.reduce((acc, row) => {
-        const key = labelForSmoking(row.prediction.smoking.label);
-        acc[key] = (acc[key] ?? 0) + 1;
-        return acc;
-      }, {});
-
-      const drinkingCounts = rows.reduce((acc, row) => {
-        const key = labelForDrinking(row.prediction.drinking.label);
-        acc[key] = (acc[key] ?? 0) + 1;
-        return acc;
-      }, {});
-
-      const smokingSummary = Object.entries(smokingCounts)
-        .map(([label, count]) => `${label}: ${count}`)
-        .join(" | ");
-
-      const drinkingSummary = Object.entries(drinkingCounts)
-        .map(([label, count]) => `${label}: ${count}`)
-        .join(" | ");
-
-      populationSummary.innerHTML = `
-        <article class="population-stat">
-          <p class="result-kicker">Smoking split</p>
-          <strong>${smokingSummary || "No results yet"}</strong>
-        </article>
-        <article class="population-stat">
-          <p class="result-kicker">Drinking split</p>
-          <strong>${drinkingSummary || "No results yet"}</strong>
-        </article>
-      `;
-    }
-
     function renderPopulationResults(rows) {
-      const tableRows = rows
+      populationResultsBody.innerHTML = rows
         .map((row) => {
           const smokingWinner = labelForSmoking(row.prediction.smoking.label);
           const drinkingWinner = labelForDrinking(row.prediction.drinking.label);
           const smokingConfidence = (topProbability(row.prediction.smoking) * 100).toFixed(1);
           const drinkingConfidence = (topProbability(row.prediction.drinking) * 100).toFixed(1);
 
-          return `
-            <tr>
-              <td>
-                <strong>${row.person.name}</strong>
-                <div class="population-subtle">${row.person.blurb}</div>
-              </td>
-              <td>
-                ${row.person.values.sex === "M" ? "Male" : "Female"}, ${row.person.values.age}y
-                <br />
-                Waist ${row.person.values.waistline}, BLDS ${row.person.values.BLDS}, Gamma ${row.person.values.gamma_GTP}
-              </td>
-              <td>${labelForDrinking(row.person.values.DRK_YN)}</td>
-              <td>${labelForSmoking(row.person.values.SMK_stat_type_cd)}</td>
-              <td><strong>${smokingWinner}</strong></td>
-              <td>${smokingConfidence}%</td>
-              <td><strong>${drinkingWinner}</strong></td>
-              <td>${drinkingConfidence}%</td>
-            </tr>
-          `;
-        })
-        .join("");
-
-      populationResults.hidden = false;
-      populationResults.innerHTML = `
-        <div class="table-scroll">
-          <table class="population-table">
-            <thead>
+            return `
               <tr>
-                <th>Profile</th>
-                <th>Key inputs</th>
-                <th>Drinking context</th>
-                <th>Smoking context</th>
-                <th>Predicted smoking</th>
-                <th>Smoking confidence</th>
-                <th>Predicted drinking</th>
-                <th>Drinking confidence</th>
+                <td class="prediction-profile">${row.person.name}</td>
+                <td>${row.person.blurb}</td>
+                <td>
+                  <div class="prediction-stack prediction-measures">
+                    <span>${keyMeasures(row.person.values)}</span>
+                    <span>${contextSummary(row.person.values)}</span>
+                  </div>
+                </td>
+                <td>
+                  <div class="prediction-stack prediction-estimate">
+                    <strong>${smokingWinner}</strong>
+                    <span>${smokingConfidence}% probability</span>
+                  </div>
+                </td>
+                <td>
+                  <div class="prediction-stack prediction-estimate">
+                    <strong>${drinkingWinner}</strong>
+                    <span>${drinkingConfidence}% probability</span>
+                  </div>
+                </td>
               </tr>
-            </thead>
-            <tbody>${tableRows}</tbody>
-          </table>
-        </div>
-      `;
+            `;
+          })
+        .join("");
     }
 
     presetButtons.forEach((button) => {
       button.addEventListener("click", () => {
         applyPreset(presets[button.dataset.preset]);
-        setStatus(`Loaded ${button.textContent?.trim()} preset.`);
-      });
-    });
-
-    personaButtons.forEach((button) => {
-      button.addEventListener("click", () => {
-        const person = samplePopulation.find((entry) => entry.id === button.dataset.persona);
-        if (!person) return;
-        applyPreset(person.values);
-        setStatus(`Loaded ${person.name} into the detailed form.`);
-        form.scrollIntoView({ behavior: "smooth", block: "start" });
+        setStatus(`The ${button.textContent?.trim()} has been loaded into the estimator.`);
       });
     });
 
     runPopulationButton?.addEventListener("click", async () => {
-      setPopulationStatus("Running predictions for 5 sample profiles...");
+      setPopulationStatus("Estimating class probabilities for the representative profiles...");
       runPopulationButton.disabled = true;
-      populationResults.hidden = true;
-      populationResults.innerHTML = "";
-      populationSummary.innerHTML = "";
 
       try {
         const rows = await Promise.all(
@@ -818,13 +677,10 @@ const staticDrinkingSummary = summarize(
           })),
         );
 
-        renderPopulationSummary(rows);
         renderPopulationResults(rows);
-        setPopulationStatus(
-          `Population simulation completed at ${new Date().toLocaleString()}.`,
-        );
+        setPopulationStatus("Representative-profile estimation completed.");
       } catch (error) {
-        setPopulationStatus(error.message || "Population simulation failed.", true);
+        setPopulationStatus(error.message || "Profile estimation failed.", true);
       } finally {
         runPopulationButton.disabled = false;
       }
@@ -832,20 +688,20 @@ const staticDrinkingSummary = summarize(
 
     form.addEventListener("submit", async (event) => {
       event.preventDefault();
-      setStatus("Running prediction...");
+      setStatus("Submitting the profile for estimation...");
       results.innerHTML = "";
 
       const payload = Object.fromEntries(new FormData(form).entries());
 
       try {
         const data = await requestPrediction(payload);
-        setStatus(`Prediction completed at ${new Date(data.predictedAt).toLocaleString()}.`);
+        setStatus(`Estimation completed at ${new Date(data.predictedAt).toLocaleString("en-US")}.`);
         results.innerHTML = `
-          ${resultCard("Smoking model", data.smoking, smokingLabels)}
-          ${resultCard("Drinking model", data.drinking, drinkingLabels)}
+          ${resultCard("Smoking classifier", data.smoking, smokingLabels)}
+          ${resultCard("Drinking classifier", data.drinking, drinkingLabels)}
         `;
       } catch (error) {
-        setStatus(error.message || "Prediction failed.", true);
+        setStatus(error.message || "Estimation failed.", true);
       }
     });
   }

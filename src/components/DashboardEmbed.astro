@@ -12,22 +12,12 @@ const embedUrl =
     : lookerStudioEmbedUrl);
 ---
 
-<article class="dashboard-shell">
+<div class="dashboard-shell">
   {embedUrl ? (
     <>
-      <div class="dashboard-meta">
-        <div>
-          <p class="eyebrow">Public Looker Studio Report</p>
-          <p class="dashboard-subtle">
-            The report keeps its internal page navigation, so visitors can move through all
-            dashboard pages from inside the site.
-          </p>
-        </div>
-      </div>
-
       <iframe
         src={embedUrl}
-        title="Looker Studio dashboard"
+        title="Interactive Looker Studio dashboard"
         loading="lazy"
         referrerpolicy="no-referrer-when-downgrade"
         allowfullscreen
@@ -37,23 +27,18 @@ const embedUrl =
       {reportUrl && (
         <p class="dashboard-link">
           <a href={reportUrl} target="_blank" rel="noreferrer">
-            Open the full dashboard in a new tab
+            Consult the dashboard in a separate browser tab
           </a>
         </p>
       )}
     </>
   ) : (
     <div class="dashboard-placeholder">
-      <p class="eyebrow">Looker Studio Embed Ready</p>
-      <h3>Add your public report URL to finish the embed</h3>
       <p>
-        Set <code>PUBLIC_LOOKER_STUDIO_EMBED_URL</code> for the iframe source and optionally
-        <code>PUBLIC_LOOKER_STUDIO_REPORT_URL</code> for an "open in new tab" link.
-      </p>
-      <p>
-        The site already includes a built-in dashboard below, so this section becomes a drop-in
-        upgrade rather than a blocker.
+        A public Looker Studio URL can be supplied through
+        <code>PUBLIC_LOOKER_STUDIO_EMBED_URL</code> and
+        <code>PUBLIC_LOOKER_STUDIO_REPORT_URL</code> if the reporting panel needs to be replaced.
       </p>
     </div>
   )}
-</article>
+</div>

@@ -1,34 +1,44 @@
 ---
 import siteData from "../data/siteData.generated.json";
 import {
-  architectureFlow,
-  dashboardNotes,
+  abstractText,
+  conclusionParagraphs,
+  confusionInterpretation,
+  datasetParagraphs,
+  dashboardParagraph,
   edaFigures,
-  modelContextNotes,
-  projectLinks,
+  edaSummary,
+  externalResources,
+  featureImportanceInterpretation,
+  introductionParagraphs,
+  modelLimitations,
+  pipelineParagraphs,
+  pipelineStages,
   references,
   sampleRows,
   siteMeta,
-  variableDescriptions,
+  studyHeader,
+  studyOverviewRows,
+  tableOfContents,
+  variableSchema,
 } from "../data/content";
 import ConfusionMatrix from "../components/ConfusionMatrix.astro";
+import DistributionBars from "../components/DistributionBars.astro";
 import DashboardEmbed from "../components/DashboardEmbed.astro";
 import FeatureImportanceBars from "../components/FeatureImportanceBars.astro";
-import MetricCard from "../components/MetricCard.astro";
 import ModelPlayground from "../components/ModelPlayground.astro";
-import SectionHeading from "../components/SectionHeading.astro";
+import AgeTrendChart from "../components/AgeTrendChart.astro";
 import BaseLayout from "../layouts/BaseLayout.astro";
 
 const latestSmoking = siteData.models.latestMetrics.smoking_rf_model;
 const latestDrinking = siteData.models.latestMetrics.drinking_rf_model;
 const latestRun = siteData.cloudPipeline.latestRun;
-const latestPromotion = siteData.cloudPipeline.promotions[0];
 const basePath = import.meta.env.BASE_URL;
 
 const smokingLabelMap = {
-  "1": "Never",
-  "2": "Quit",
-  "3": "Still smoke",
+  "1": "Never smoker",
+  "2": "Former smoker",
+  "3": "Current smoker",
 };
 
 const drinkingLabelMap = {
@@ -36,561 +46,677 @@ const drinkingLabelMap = {
   Y: "Drinker",
 };
 
-function metricDelta(current, baseline) {
-  const delta = current - baseline;
-  const sign = delta >= 0 ? "+" : "";
-  return `${sign}${(delta * 100).toFixed(1)} pts`;
-}
+const headerLinks = [
+  { id: "introduction", label: "Introduction" },
+  { id: "dataset", label: "Dataset" },
+  { id: "eda", label: "EDA" },
+  { id: "pipeline", label: "Pipeline" },
+  { id: "models", label: "Models" },
+  { id: "dashboard", label: "Dashboard" },
+  { id: "explorer", label: "Explorer" },
+  { id: "conclusions", label: "Conclusions" },
+  { id: "references", label: "References" },
+];
 
 function withBase(path) {
   const cleanBase = basePath.endsWith("/") ? basePath : `${basePath}/`;
   return `${cleanBase}${String(path).replace(/^\/+/, "")}`;
 }
 
-function formatTimestamp(value, fallback = "Recent update") {
-  if (!value || value === "[object Object]") return fallback;
-  const parsed = new Date(value);
-  return Number.isNaN(parsed.getTime()) ? String(value) : parsed.toLocaleString();
+function formatSchedule(value, timeZone) {
+  if (value === "0 3 * * 1") {
+    return `Weekly automated refresh (Mondays, 03:00; ${timeZone})`;
+  }
+
+  return value ? `${value} (${timeZone})` : "Scheduled refresh";
 }
 
-function formatSchedule(value) {
-  if (!value) return "Scheduled";
-  const knownSchedules = {
-    "0 3 * * 1": "Weekly",
+function formatStatus(value) {
+  const labels = {
+    SUCCESS: "Successful",
+    PASS: "Passed",
+    APPROVED: "Approved",
+    ENABLED: "Enabled",
+    ACTIVE: "Active",
   };
-  return knownSchedules[value] ?? value;
+
+  return labels[value] ?? value ?? "Available";
 }
 
 function formatCheckName(value) {
   const labels = {
-    unique_row_id_check: "Duplicate record check",
-    rowcount_check: "Row volume check",
-    valid_values_check: "Valid values check",
+    unique_row_id_check: "Duplicate-record check",
+    rowcount_check: "Row-count consistency check",
+    valid_values_check: "Valid-value domain check",
   };
 
   return labels[value] ?? String(value).replace(/_/g, " ");
 }
 
-function formatAlert(value) {
-  if (value?.includes("Workflow failure")) {
-    return "Automatic monitoring flags any failed refresh.";
-  }
-
-  if (value?.includes("Missing scheduled run")) {
-    return "Automatic monitoring alerts the team if a scheduled refresh is missed.";
-  }
-
-  return value;
+function metricDelta(current, baseline) {
+  const delta = current - baseline;
+  const sign = delta >= 0 ? "+" : "";
+  return `${sign}${(delta * 100).toFixed(1)} percentage points`;
 }
+
+function formatInteger(value) {
+  return Number(value).toLocaleString("en-US");
+}
+
+function findPeak(points, label) {
+  return points
+    .filter((point) => point.label === label)
+    .reduce((currentPeak, point) => (point.count > currentPeak.count ? point : currentPeak));
+}
+
+const scheduler = siteData.project.schedulerJobs[0];
+const datasetMeta = siteData.dataset;
+const sexDistribution = datasetMeta.sexDistribution;
+const smokingDistribution = datasetMeta.smokingDistribution;
+const drinkingDistribution = datasetMeta.drinkingDistribution;
+const ageByDrinking = datasetMeta.ageByDrinking;
+const ageBySmoking = datasetMeta.ageBySmoking;
+
+const maleShare = sexDistribution.find((item) => item.label === "Male");
+const femaleShare = sexDistribution.find((item) => item.label === "Female");
+const currentSmokingShare = smokingDistribution.find((item) => item.label === "Still smoke");
+const formerSmokingShare = smokingDistribution.find((item) => item.label === "Quit");
+const neverSmokingShare = smokingDistribution.find((item) => item.label === "Never");
+const everSmokingPct = smokingDistribution
+  .filter((item) => item.label !== "Never")
+  .reduce((total, item) => total + item.pct, 0);
+
+const peakDrinkers = findPeak(ageByDrinking, "Drinkers");
+const peakNonDrinkers = findPeak(ageByDrinking, "Non-drinkers");
+const peakCurrentSmokers = findPeak(ageBySmoking, "Still smoke");
+const peakFormerSmokers = findPeak(ageBySmoking, "Quit");
+
+const ageBands = [...new Set(ageByDrinking.map((point) => point.age))].sort((a, b) => a - b);
+const drinkingCrossover = ageBands.find((age) => {
+  const nonDrinkers = ageByDrinking.find((point) => point.age === age && point.label === "Non-drinkers")?.count ?? 0;
+  const drinkers = ageByDrinking.find((point) => point.age === age && point.label === "Drinkers")?.count ?? 0;
+  return nonDrinkers > drinkers;
+});
+
+const retainedPct =
+  (siteData.cloudPipeline.stageCounts.staging / siteData.notebookBaseline.rowsRaw) * 100;
+const drinkingBalanceGap = Math.abs(drinkingDistribution[0].count - drinkingDistribution[1].count);
+
+const studyOverviewTable = [
+  ...studyOverviewRows,
+  ["Analytical sample after quality screening", `${formatInteger(siteData.cloudPipeline.stageCounts.staging)} records retained`],
+  ["Reporting cadence", formatSchedule(scheduler?.schedule, scheduler?.timeZone ?? "UTC")],
+];
+
+const coverPreview = {
+  src: withBase("eda/age-by-drinking.png"),
+  alt: "Distribution plot showing alcohol-consumption prevalence across age groups.",
+  caption:
+    "Age-structured comparison between drinkers and non-drinkers in the screened adult population.",
+};
+
+const pipelineStageTable = pipelineStages.map(([stage, description, tool, frequency]) => {
+  if (stage === "Workflow orchestration" || stage === "Publication and reporting") {
+    return [stage, description, tool, formatSchedule(scheduler?.schedule, scheduler?.timeZone ?? "UTC")];
+  }
+
+  return [stage, description, tool, frequency];
+});
+
+const pipelineLogRows = [
+  ...siteData.cloudPipeline.pipelineRuns.map((run) => ({
+    type: "Pipeline refresh",
+    identifier: run.pipelineRunId,
+    description: `${formatInteger(run.rawRowCount)} raw records processed; ${formatInteger(run.stagingRowCount)} records preserved after screening.`,
+    outcome: formatStatus(run.finalStatus),
+    notes: `${formatInteger(run.duplicatesRemoved)} duplicate or invalid records removed.`,
+  })),
+  ...siteData.cloudPipeline.dataQualityChecks.map((check) => ({
+    type: "Validation check",
+    identifier: formatCheckName(check.name),
+    description: `Validation executed for pipeline run ${check.pipelineRunId}.`,
+    outcome: formatStatus(check.status),
+    notes: `${formatInteger(check.failedRows)} failed rows recorded.`,
+  })),
+];
+
+const performanceRows = [
+  [
+    "Smoking classifier",
+    "Accuracy",
+    `${(siteData.notebookBaseline.smoking.accuracy * 100).toFixed(1)}%`,
+    `${(latestSmoking.accuracy * 100).toFixed(1)}%`,
+    metricDelta(latestSmoking.accuracy, siteData.notebookBaseline.smoking.accuracy),
+  ],
+  [
+    "Smoking classifier",
+    "F1 score",
+    siteData.notebookBaseline.smoking.f1.toFixed(3),
+    latestSmoking.f1.toFixed(3),
+    (latestSmoking.f1 - siteData.notebookBaseline.smoking.f1).toFixed(3),
+  ],
+  [
+    "Drinking classifier",
+    "Accuracy",
+    `${(siteData.notebookBaseline.drinking.accuracy * 100).toFixed(1)}%`,
+    `${(latestDrinking.accuracy * 100).toFixed(1)}%`,
+    metricDelta(latestDrinking.accuracy, siteData.notebookBaseline.drinking.accuracy),
+  ],
+  [
+    "Drinking classifier",
+    "F1 score",
+    siteData.notebookBaseline.drinking.f1.toFixed(3),
+    latestDrinking.f1.toFixed(3),
+    (latestDrinking.f1 - siteData.notebookBaseline.drinking.f1).toFixed(3),
+  ],
+];
+
+const edaDiagnosticRows = [
+  [
+    "Screening retention after validation",
+    `${formatInteger(siteData.cloudPipeline.stageCounts.staging)} of ${formatInteger(siteData.notebookBaseline.rowsRaw)} records retained (${retainedPct.toFixed(3)}%)`,
+    "Quality screening removed only a negligible fraction of rows, indicating that the cohort is operationally stable and that later findings are not driven by aggressive exclusion.",
+  ],
+  [
+    "Sex composition",
+    `${maleShare.pct}% male (${formatInteger(maleShare.count)}) vs. ${femaleShare.pct}% female (${formatInteger(femaleShare.count)})`,
+    "The sex split is broad enough to reduce concern that the descriptive patterns are dominated by a single demographic stratum.",
+  ],
+  [
+    "Smoking exposure prevalence",
+    `${everSmokingPct.toFixed(1)}% ever smokers; ${currentSmokingShare.pct}% current smokers; ${formerSmokingShare.pct}% former smokers`,
+    "The smoking target is meaningfully imbalanced, which raises the analytical difficulty of separating former smokers from the neighboring never- and current-smoking classes.",
+  ],
+  [
+    "Drinking-class balance",
+    `${formatInteger(drinkingBalanceGap)} records separate drinkers and non-drinkers at the cohort level`,
+    "The alcohol target is nearly perfectly balanced, creating a cleaner setting for binary classification and comparative subgroup profiling.",
+  ],
+  [
+    "Age-based crossover in drinking prevalence",
+    `At age ${drinkingCrossover}, non-drinkers (${formatInteger(ageByDrinking.find((point) => point.age === drinkingCrossover && point.label === "Non-drinkers").count)}) narrowly exceed drinkers (${formatInteger(ageByDrinking.find((point) => point.age === drinkingCrossover && point.label === "Drinkers").count)})`,
+    "This crossover marks the life-stage at which alcohol prevalence stops dominating the age profile and begins to recede in the older cohort.",
+  ],
+  [
+    "Peak behavioral intensity by age band",
+    `Drinkers peak at age ${peakDrinkers.age}; current smokers peak at age ${peakCurrentSmokers.age}; former smokers peak at age ${peakFormerSmokers.age}`,
+    "The lag between current-smoking and former-smoking peaks suggests a plausible transition pattern from active exposure in early midlife to cessation accumulation later in adulthood.",
+  ],
+];
 ---
 
 <BaseLayout title={siteMeta.title} description={siteMeta.description}>
   <header class="site-header">
-    <a href="#top" class="brand">
-      <span class="brand-mark">SD</span>
-      <span>
-        <strong>Smoking and Drinking Prediction</strong>
-        <small>Interactive health insights</small>
-      </span>
+    <a class="masthead-link" href="#top">
+      <span class="running-title">Applied Research Project</span>
+      <span class="masthead-name">Smoking and Alcohol Prediction Study</span>
     </a>
-
-    <nav class="site-nav">
-      <a href="#overview">Overview</a>
-      <a href="#dataset">Dataset</a>
-      <a href="#eda">Insights</a>
-      <a href="#pipeline">System</a>
-      <a href="#models">Models</a>
-      <a href="#dashboard">Dashboard</a>
-      <a href="#playground">Playground</a>
-      <button type="button" class="theme-button" data-theme-toggle>
-        Theme
-      </button>
+    <nav class="site-nav" aria-label="Primary">
+      {headerLinks.map((entry) => (
+        <a href={`#${entry.id}`}>{entry.label}</a>
+      ))}
     </nav>
   </header>
 
-  <main id="top">
-    <section class="hero">
-      <div class="hero-copy">
-        <p class="eyebrow">Behavior and Health Insights</p>
-        <h1>Smoking and Drinking Prediction</h1>
-        <p class="hero-lead">
-          Explore how body signals relate to smoking and drinking patterns.
-        </p>
-        <p class="hero-body">
-          This experience combines population-level analysis, interactive model views, and a
-          multi-page dashboard in one place, making it easier to move from broad health patterns
-          to concrete profile-based examples.
-        </p>
+  <div class="article-grid">
+    <aside class="jump-rail" aria-label="Section outline">
+      <p class="jump-rail-label">On this page</p>
+      <ol>
+        {tableOfContents.map((entry) => (
+          <li>
+            <a href={`#${entry.id}`}>{entry.label}</a>
+          </li>
+        ))}
+      </ol>
+    </aside>
 
-        <div class="hero-links">
-          {projectLinks.map((link) => (
-            <a href={link.href} target="_blank" rel="noreferrer" class="chip-link">
-              {link.label}
-            </a>
-          ))}
-        </div>
+    <main id="top" class="paper-shell">
+      <section class="cover-section">
+        <div class="cover-head">
+          <p class="cover-badge">{studyHeader.badge}</p>
+          <h1>{studyHeader.title}</h1>
+          <p class="cover-subtitle">{studyHeader.subtitle}</p>
 
-        <div class="hero-jump-links">
-          <a href="#dashboard" class="hero-inline-link">Jump to dashboard</a>
-          <a href="#playground" class="hero-inline-link">Try live prediction</a>
-        </div>
-      </div>
-
-      <div class="hero-panel">
-        <p class="eyebrow panel-eyebrow">Project Snapshot</p>
-        <div class="hero-grid">
-          <MetricCard
-            label="Raw dataset rows"
-            value={siteData.dataset.observations.toLocaleString()}
-            note="Anonymized health records"
-          />
-          <MetricCard
-            label="Rows preserved in staging"
-            value={`${siteData.cloudPipeline.preservedPct}%`}
-            note={`${siteData.cloudPipeline.stageCounts.staging.toLocaleString()} clean rows`}
-          />
-          <MetricCard
-            label="Predictive models"
-            value="2"
-            note="Smoking and drinking classifiers"
-          />
-          <MetricCard
-            label="Refresh cadence"
-            value={formatSchedule(siteData.project.schedulerJobs[0]?.schedule)}
-            note={siteData.project.schedulerJobs[0]?.state ?? "Automatic refresh"}
-          />
-        </div>
-
-        <div class="hero-note">
-          <p>
-            <strong>Start anywhere.</strong> Browse the embedded dashboard, inspect the population
-            charts, or compare individual profiles in the prediction explorer below.
-          </p>
-          <p class="hero-note-meta">
-            Latest system status: {latestRun?.finalStatus ?? "SUCCESS"}
-          </p>
-        </div>
-      </div>
-    </section>
-
-    <div class="content-shell">
-      <aside class="page-outline" aria-label="Page outline">
-        <p class="outline-label">On this page</p>
-        <a href="#overview">Overview</a>
-        <a href="#dataset">Dataset</a>
-        <a href="#eda">Insights</a>
-        <a href="#pipeline">System</a>
-        <a href="#models">Models</a>
-        <a href="#dashboard">Dashboard</a>
-        <a href="#playground">Playground</a>
-        <a href="#references">References</a>
-      </aside>
-
-      <div class="content-stack">
-        <section id="overview" class="section">
-          <SectionHeading
-            kicker="Overview"
-            title="A clearer view of smoking and drinking patterns"
-            intro="This site brings together health indicators, behavior-linked trends, and predictive outputs so visitors can understand how everyday body signals relate to smoking and drinking outcomes."
-          />
-
-          <div class="insight-grid">
-            <article class="insight-card">
-              <h3>Population scale</h3>
-              <p>
-                The dataset covers {siteData.dataset.observations.toLocaleString()} health records,
-                giving the analysis a broad view of how biometric and lifestyle signals move
-                together across many different profiles.
-              </p>
-            </article>
-            <article class="insight-card">
-              <h3>Behavior signals</h3>
-              <p>
-                Waistline, blood pressure, glucose, cholesterol, triglycerides, and liver markers
-                all contribute to recognizable patterns that help explain smoking and drinking
-                behavior.
-              </p>
-            </article>
-            <article class="insight-card">
-              <h3>Interactive exploration</h3>
-              <p>
-                Visitors can move from big-picture charts to a multi-page dashboard and then into
-                profile-based prediction examples without needing any technical background.
-              </p>
-            </article>
-          </div>
-        </section>
-
-        <section id="dataset" class="section">
-          <SectionHeading
-            kicker="Dataset"
-            title="Health signals from the Korean National Health Insurance Service"
-            intro="The dataset brings together anonymized health measurements and lifestyle labels, making it possible to study both broad population patterns and profile-level prediction outcomes."
-          />
-
-          <div class="metric-grid">
-            <MetricCard label="Observations" value={siteData.dataset.observations.toLocaleString()} />
-            <MetricCard label="Variables" value={String(siteData.dataset.variables)} />
-            <MetricCard label="Completeness" value={siteData.dataset.completeness} />
-            <MetricCard
-              label="Project"
-              value={siteData.project.id}
-              note={siteData.project.location}
-            />
+          <div class="cover-meta">
+            <span><strong>Publication date:</strong> {studyHeader.publicationDate}</span>
+            <span><strong>Data source:</strong> {studyHeader.dataSource}</span>
           </div>
 
-          <div class="table-card">
-            <h3>Sample rows</h3>
-            <div class="table-scroll">
-              <table>
-                <thead>
+          <div class="link-row">
+            {externalResources.map((resource) => (
+              <a href={resource.href} target="_blank" rel="noreferrer">
+                {resource.label}
+              </a>
+            ))}
+          </div>
+        </div>
+
+        <div class="cover-grid">
+          <article class="abstract-block">
+            <h2>Abstract</h2>
+            <p>{abstractText}</p>
+          </article>
+
+          <div class="cover-aside">
+            <figure class="hero-preview">
+              <img src={coverPreview.src} alt={coverPreview.alt} loading="eager" />
+              <figcaption>
+                <span class="figure-label">Study preview.</span> <em>{coverPreview.caption}</em>
+              </figcaption>
+            </figure>
+
+            <table class="academic-table compact-table study-overview-table">
+              <caption>Study overview</caption>
+              <tbody>
+                {studyOverviewTable.map(([label, value]) => (
                   <tr>
-                    {Object.keys(sampleRows[0]).map((key) => <th>{key}</th>)}
+                    <th>{label}</th>
+                    <td>{value}</td>
                   </tr>
-                </thead>
-                <tbody>
-                  {sampleRows.map((row) => (
-                    <tr>
-                      {Object.values(row).map((value) => <td>{String(value)}</td>)}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                ))}
+              </tbody>
+            </table>
           </div>
+        </div>
+      </section>
 
-          <div class="variables-grid">
-            {variableDescriptions.map(([name, description]) => (
-              <article class="variable-card">
-                <h3>{name}</h3>
-                <p>{description}</p>
-              </article>
+      <section class="section toc-section">
+        <h2>Table of Contents</h2>
+        <p class="toc-intro">
+          The following sections provide direct access to the descriptive, methodological, and
+          interpretive components of the study.
+        </p>
+        <ol class="toc-list">
+          {tableOfContents.map((entry) => (
+            <li>
+              <a href={`#${entry.id}`}>{entry.label}</a>
+            </li>
+          ))}
+        </ol>
+      </section>
+
+      <section id="introduction" class="section">
+        <h2>1. Introduction</h2>
+        {introductionParagraphs.map((paragraph, index) => (
+          <p class={index === 0 ? "lead-paragraph" : undefined}>{paragraph}</p>
+        ))}
+      </section>
+
+      <section id="dataset" class="section">
+        <h2>2. Dataset Description</h2>
+
+        <h3>2.1 Data origin and ethical considerations</h3>
+        {datasetParagraphs.map((paragraph) => <p>{paragraph}</p>)}
+
+        <h3>2.2 Representative sample records</h3>
+        <table class="academic-table">
+          <caption>Table 1. Representative sample of NHIS-Korea records (first 5 observations)</caption>
+          <thead>
+            <tr>
+              {Object.keys(sampleRows[0]).map((key) => <th>{key}</th>)}
+            </tr>
+          </thead>
+          <tbody>
+            {sampleRows.map((row) => (
+              <tr>
+                {Object.values(row).map((value) => <td>{String(value)}</td>)}
+              </tr>
             ))}
-          </div>
-        </section>
+          </tbody>
+        </table>
 
-        <section id="eda" class="section">
-          <SectionHeading
-            kicker="Population Insights"
-            title="Key patterns across the population"
-            intro="These charts highlight how age, sex, and biometric measures vary across smoking and drinking groups, helping visitors spot the most meaningful patterns at a glance."
+        <h3>2.3 Variable schema</h3>
+        <table class="academic-table">
+          <caption>Variable schema used in descriptive and predictive analysis</caption>
+          <thead>
+            <tr>
+              <th>Variable</th>
+              <th>Type</th>
+              <th>Description</th>
+              <th>Unit</th>
+            </tr>
+          </thead>
+          <tbody>
+            {variableSchema.map(([variable, type, description, unit]) => (
+              <tr>
+                <td>{variable}</td>
+                <td>{type}</td>
+                <td>{description}</td>
+                <td>{unit}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </section>
+
+      <section id="eda" class="section">
+        <h2>3. Exploratory Data Analysis</h2>
+
+        <h3>3.1 Analytical framing of the exploratory stage</h3>
+        <p>
+          The exploratory analysis was undertaken to identify which structural patterns in the
+          screening data are most relevant for smoking and alcohol classification. Particular
+          attention was given to class balance, age gradients, and the distributional behavior of
+          biomarkers that later emerge as informative predictors.
+        </p>
+
+        <h3>3.2 Cohort balance and retention diagnostics</h3>
+        <p>
+          From a data-analytical perspective, the first priority was to establish whether the
+          working cohort preserved its original scale, whether the target labels were materially
+          imbalanced, and whether the basic demographic composition was sufficiently broad for
+          stable subgroup comparisons. Those checks are especially important because they determine
+          how much confidence can be placed in later descriptive and predictive results.
+        </p>
+
+        <div class="chart-grid">
+          <DistributionBars
+            title="Sex composition"
+            items={sexDistribution}
           />
+          <DistributionBars
+            title="Smoking-status composition"
+            items={smokingDistribution}
+          />
+          <DistributionBars
+            title="Alcohol-use composition"
+            items={drinkingDistribution}
+          />
+        </div>
 
-          <div class="eda-grid">
-            {edaFigures.map((figure) => (
-              <article class="eda-card">
-                <a href={withBase(figure.src)} target="_blank" rel="noreferrer" class="eda-media">
-                  <img src={withBase(figure.src)} alt={figure.alt} loading="lazy" />
+        <table class="academic-table analytical-table">
+          <caption>Analytical summary of cohort balance and screening-retention diagnostics</caption>
+          <thead>
+            <tr>
+              <th>Diagnostic</th>
+              <th>Observed value</th>
+              <th>Analytical implication</th>
+            </tr>
+          </thead>
+          <tbody>
+            {edaDiagnosticRows.map(([diagnostic, observed, implication]) => (
+              <tr>
+                <td>{diagnostic}</td>
+                <td>{observed}</td>
+                <td>{implication}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+
+        <p>
+          Several concrete signals emerge from these checks. The validated analytical sample retains
+          {` ${retainedPct.toFixed(3)}%`} of the raw cohort, indicating negligible loss after
+          screening. The sex composition is moderately male-skewed by 6.2 percentage points, but
+          not to the extent that one would expect severe descriptive distortion. The smoking target
+          is materially more challenging than the drinking target because only {formerSmokingShare.pct}%
+          of the cohort belongs to the former-smoker class, whereas the alcohol label differs by
+          only {formatInteger(drinkingBalanceGap)} records between classes.
+        </p>
+
+        <h3>3.3 Age-structured prevalence patterns</h3>
+        <p>
+          Age is not treated here as a mere control variable. Instead, the age distributions were
+          examined as behavioral signatures that help explain how exposure accumulates, peaks, and
+          recedes across the life course. This lens is useful because the predictive models later
+          encounter the same age-linked transitions in conjunction with metabolic and hepatic
+          markers.
+        </p>
+
+        <div class="chart-grid">
+          <AgeTrendChart
+            title="Age gradient of alcohol-use prevalence"
+            points={ageByDrinking}
+          />
+          <AgeTrendChart
+            title="Age gradient of smoking-status prevalence"
+            points={ageBySmoking}
+          />
+        </div>
+
+        <p>
+          The age curves indicate that drinker counts rise sharply through the twenties and thirties
+          before reaching their maximum at age {peakDrinkers.age} ({formatInteger(peakDrinkers.count)} records),
+          whereas non-drinkers reach their maximum later at age {peakNonDrinkers.age} ({formatInteger(peakNonDrinkers.count)} records).
+          The crossover occurs at age {drinkingCrossover}, when non-drinkers begin to outnumber
+          drinkers. Smoking follows a related but distinct pattern: current smokers peak at age {peakCurrentSmokers.age},
+          while former smokers peak one age band later at age {peakFormerSmokers.age}. This staggered
+          timing is analytically consistent with a cessation process that accumulates after the period
+          of highest active smoking prevalence.
+        </p>
+
+        <h3>3.4 Figure-based distribution review</h3>
+        {edaFigures.map((figure) => (
+          <article class="figure-block">
+            <h4>{figure.title}</h4>
+            <figure class="paper-figure">
+              <a href={withBase(figure.src)} target="_blank" rel="noreferrer">
+                <img src={withBase(figure.src)} alt={figure.alt} loading="lazy" />
+              </a>
+              <figcaption>
+                <span class="figure-label">Figure {figure.number}.</span>{" "}
+                <em>{figure.caption}</em>{" "}
+                <a href={withBase(figure.src)} target="_blank" rel="noreferrer">
+                  [View full figure]
                 </a>
-                <div class="eda-copy">
-                  <h3>{figure.title}</h3>
-                  <p>{figure.summary}</p>
-                  <a href={withBase(figure.src)} target="_blank" rel="noreferrer" class="eda-link">
-                    Open full figure
-                  </a>
-                </div>
-              </article>
-            ))}
-          </div>
-
-          <div class="compare-grid">
-            <article class="compare-card">
-              <p class="eyebrow">Population coverage</p>
-              <h3>The analysis spans a broad range of health profiles</h3>
-              <p>
-                With {siteData.dataset.observations.toLocaleString()} records and{" "}
-                {siteData.dataset.variables} variables, the dataset captures meaningful variation
-                across demographics, vitals, and lab measurements.
-              </p>
-            </article>
-            <article class="compare-card emphasis">
-              <p class="eyebrow">Data consistency</p>
-              <h3>Only a very small share of records are excluded during quality screening</h3>
-              <p>
-                The working dataset retains{" "}
-                {siteData.cloudPipeline.stageCounts.staging.toLocaleString()} rows, preserving
-                nearly the full population while removing clear duplicates and invalid records.
-              </p>
-            </article>
-          </div>
-
-          <article class="notes-card">
-            <h3>How to read these charts</h3>
-            <ul class="note-list">
-              <li>
-                These visuals show population-level patterns rather than individual medical advice.
-              </li>
-              <li>
-                Differences become more meaningful when several indicators move in the same
-                direction.
-              </li>
-              <li>
-                Use the scenario table and prediction explorer below to translate these patterns
-                into concrete examples.
-              </li>
-            </ul>
+              </figcaption>
+            </figure>
+            <p>{figure.analysis}</p>
           </article>
-        </section>
+        ))}
 
-        <section id="pipeline" class="section">
-          <SectionHeading
-            kicker="System Overview"
-            title="How the data and predictions stay current"
-            intro="Behind the scenes, the project organizes records, quality checks, model refreshes, and reporting into a scheduled flow so the experience remains consistent over time."
-          />
+        <h3>3.5 EDA summary</h3>
+        <p>{edaSummary}</p>
+      </section>
 
-          <div class="flow-card">
-            {architectureFlow.map((step, index) => (
-              <div class="flow-step">
-                <span>{index + 1}</span>
-                <p>{step}</p>
-              </div>
+      <section id="pipeline" class="section">
+        <h2>4. System Architecture &amp; Data Pipeline</h2>
+
+        <h3>4.1 Technical architecture</h3>
+        {pipelineParagraphs.map((paragraph) => <p>{paragraph}</p>)}
+
+        <table class="academic-table">
+          <caption>Pipeline stage specification</caption>
+          <thead>
+            <tr>
+              <th>Stage</th>
+              <th>Description</th>
+              <th>Tool/Technology</th>
+              <th>Frequency</th>
+            </tr>
+          </thead>
+          <tbody>
+            {pipelineStageTable.map(([stage, description, tool, frequency]) => (
+              <tr>
+                <td>{stage}</td>
+                <td>{description}</td>
+                <td>{tool}</td>
+                <td>{frequency}</td>
+              </tr>
             ))}
-          </div>
+          </tbody>
+        </table>
 
-          <div class="metric-grid">
-            <MetricCard
-              label="Refresh workflow"
-              value={siteData.project.workflow?.name ?? "health-pipeline"}
-              note={siteData.project.workflow?.state ?? "ACTIVE"}
-            />
-            <MetricCard
-              label="Latest refresh"
-              value={latestRun?.finalStatus ?? "SUCCESS"}
-              note={formatTimestamp(latestRun?.runTimestamp, "Most recent run")}
-            />
-            <MetricCard
-              label="Records removed"
-              value={siteData.cloudPipeline.duplicatesRemoved.toLocaleString()}
-              note="duplicate or invalid entries"
-            />
-            <MetricCard
-              label="Model status"
-              value={latestPromotion?.status ?? "APPROVED"}
-              note={latestPromotion?.notes ?? "Meets current quality threshold"}
-            />
-          </div>
+        <h3>4.2 Execution trace and validation outcomes</h3>
+        <table class="academic-table">
+          <caption>Table 2. Pipeline execution log and validation results</caption>
+          <thead>
+            <tr>
+              <th>Record type</th>
+              <th>Identifier</th>
+              <th>Description</th>
+              <th>Outcome</th>
+              <th>Notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            {pipelineLogRows.map((row) => (
+              <tr>
+                <td>{row.type}</td>
+                <td>{row.identifier}</td>
+                <td>{row.description}</td>
+                <td>{row.outcome}</td>
+                <td>{row.notes}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
 
-          <div class="chart-grid two-up">
-            <article class="chart-card">
-              <div class="chart-head">
-                <h3>Recent refresh history</h3>
-              </div>
-              <div class="timeline-list">
-                {siteData.cloudPipeline.pipelineRuns.map((run, index) => (
-                  <div class="timeline-item">
-                    <div>
-                      <strong>Refresh {index + 1}</strong>
-                      <p>{formatTimestamp(run.runTimestamp, run.pipelineRunId)}</p>
-                    </div>
-                    <p>
-                      {run.stagingRowCount.toLocaleString()} clean rows - {run.finalStatus}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </article>
+        <h3>4.3 Operational interpretation</h3>
+        <p>
+          At the time of the April 2026 snapshot, the latest available refresh was recorded as
+          <strong> {formatStatus(latestRun?.finalStatus)}</strong>, with
+          <strong> {formatInteger(siteData.cloudPipeline.stageCounts.staging)}</strong> clean
+          records retained from <strong>{formatInteger(siteData.cloudPipeline.stageCounts.raw)}</strong>{" "}
+          raw observations. Quality screening removed only
+          <strong> {formatInteger(siteData.cloudPipeline.rowsDroppedInStaging)}</strong> records,
+          indicating that the operational pipeline preserves nearly the entire analytical sample
+          while still enforcing duplicate and validity checks. This behavior is consistent with a
+          research pipeline that privileges reproducibility and traceable quality control over
+          aggressive exclusion.
+        </p>
+      </section>
 
-            <article class="chart-card">
-              <div class="chart-head">
-                <h3>Validation checks</h3>
-              </div>
-              <div class="timeline-list">
-                {siteData.cloudPipeline.dataQualityChecks.map((check) => (
-                  <div class="timeline-item">
-                    <div>
-                      <strong>{formatCheckName(check.name)}</strong>
-                      <p>{formatTimestamp(check.timestamp, "Latest validation")}</p>
-                    </div>
-                    <p>{check.status} - {check.failedRows} failed rows</p>
-                  </div>
-                ))}
-              </div>
-            </article>
-          </div>
+      <section id="models" class="section">
+        <h2>5. Predictive Models &amp; Results</h2>
 
-          <article class="notes-card">
-            <h3>Reliability notes</h3>
-            <ul class="note-list">
-              {siteData.project.alerting.map((note) => <li>{formatAlert(note)}</li>)}
-            </ul>
-          </article>
-        </section>
+        <h3>5.1 Comparative performance</h3>
+        <p>
+          Two random-forest classifiers were maintained in the analytical workflow: a three-class
+          smoking-status model and a binary drinking-status model. Performance was compared against
+          the earlier baseline estimates retained from the exploratory phase of the project.
+        </p>
 
-        <section id="models" class="section">
-          <SectionHeading
-            kicker="Model Insights"
-            title="How the predictors read smoking and drinking patterns"
-            intro="This section summarizes overall model performance, highlights the strongest input signals, and shows where predictions are most accurate."
-          />
+        <table class="academic-table">
+          <caption>
+            Table 3. Performance metrics - Smoking and drinking classifiers (baseline vs. current)
+          </caption>
+          <thead>
+            <tr>
+              <th>Model</th>
+              <th>Metric</th>
+              <th>Baseline</th>
+              <th>Current</th>
+              <th>Difference</th>
+            </tr>
+          </thead>
+          <tbody>
+            {performanceRows.map(([model, metric, baseline, current, delta]) => (
+              <tr>
+                <td>{model}</td>
+                <td>{metric}</td>
+                <td>{baseline}</td>
+                <td>{current}</td>
+                <td>{delta}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
 
-          <div class="chart-grid two-up">
-            <article class="chart-card compare-panel">
-              <div class="chart-head">
-                <h3>Smoking classifier</h3>
-              </div>
-              <div class="model-metrics">
-                <div>
-                  <p class="metric-label">Baseline accuracy</p>
-                  <strong>{(siteData.notebookBaseline.smoking.accuracy * 100).toFixed(1)}%</strong>
-                </div>
-                <div>
-                  <p class="metric-label">Current accuracy</p>
-                  <strong>{(latestSmoking.accuracy * 100).toFixed(1)}%</strong>
-                  <small>
-                    {metricDelta(latestSmoking.accuracy, siteData.notebookBaseline.smoking.accuracy)}
-                  </small>
-                </div>
-                <div>
-                  <p class="metric-label">Baseline F1</p>
-                  <strong>{siteData.notebookBaseline.smoking.f1.toFixed(3)}</strong>
-                </div>
-                <div>
-                  <p class="metric-label">Current F1</p>
-                  <strong>{latestSmoking.f1.toFixed(3)}</strong>
-                  <small>{metricDelta(latestSmoking.f1, siteData.notebookBaseline.smoking.f1)}</small>
-                </div>
-              </div>
-            </article>
+        <h3>5.2 Feature-importance profiles</h3>
+        <p>{featureImportanceInterpretation}</p>
 
-            <article class="chart-card compare-panel">
-              <div class="chart-head">
-                <h3>Drinking classifier</h3>
-              </div>
-              <div class="model-metrics">
-                <div>
-                  <p class="metric-label">Baseline accuracy</p>
-                  <strong>{(siteData.notebookBaseline.drinking.accuracy * 100).toFixed(1)}%</strong>
-                </div>
-                <div>
-                  <p class="metric-label">Current accuracy</p>
-                  <strong>{(latestDrinking.accuracy * 100).toFixed(1)}%</strong>
-                  <small>
-                    {metricDelta(
-                      latestDrinking.accuracy,
-                      siteData.notebookBaseline.drinking.accuracy,
-                    )}
-                  </small>
-                </div>
-                <div>
-                  <p class="metric-label">Baseline F1</p>
-                  <strong>{siteData.notebookBaseline.drinking.f1.toFixed(3)}</strong>
-                </div>
-                <div>
-                  <p class="metric-label">Current F1</p>
-                  <strong>{latestDrinking.f1.toFixed(3)}</strong>
-                  <small>
-                    {metricDelta(latestDrinking.f1, siteData.notebookBaseline.drinking.f1)}
-                  </small>
-                </div>
-              </div>
-            </article>
-          </div>
-
-          <div class="chart-grid two-up">
+        <div class="figure-grid">
+          <figure class="paper-figure panel-figure">
             <FeatureImportanceBars
-              title="Smoking model feature importance"
+              title="Smoking classifier feature-importance ranking"
               rows={siteData.models.smokingFeatureImportance}
             />
+            <figcaption>
+              <span class="figure-label">Figure 7.</span>{" "}
+              <em>Relative importance of the top predictors used by the smoking classifier.</em>
+            </figcaption>
+          </figure>
+          <figure class="paper-figure panel-figure">
             <FeatureImportanceBars
-              title="Drinking model feature importance"
+              title="Drinking classifier feature-importance ranking"
               rows={siteData.models.drinkingFeatureImportance}
             />
-          </div>
+            <figcaption>
+              <span class="figure-label">Figure 8.</span>{" "}
+              <em>Relative importance of the top predictors used by the drinking classifier.</em>
+            </figcaption>
+          </figure>
+        </div>
 
-          <div class="chart-grid two-up">
+        <h3>5.3 Classification error structure</h3>
+        <div class="figure-grid">
+          <figure class="paper-figure panel-figure">
             <ConfusionMatrix
-              title="Smoking confusion matrix"
+              title="Smoking classification confusion matrix"
               labels={siteData.models.smokingConfusionMatrix.labels}
               matrix={siteData.models.smokingConfusionMatrix.matrix}
               labelMap={smokingLabelMap}
             />
+            <figcaption>
+              <span class="figure-label">Figure 9.</span>{" "}
+              <em>Observed-versus-predicted class counts for the smoking classifier.</em>
+            </figcaption>
+          </figure>
+          <figure class="paper-figure panel-figure">
             <ConfusionMatrix
-              title="Drinking confusion matrix"
+              title="Drinking classification confusion matrix"
               labels={siteData.models.drinkingConfusionMatrix.labels}
               matrix={siteData.models.drinkingConfusionMatrix.matrix}
               labelMap={drinkingLabelMap}
             />
-          </div>
+            <figcaption>
+              <span class="figure-label">Figure 10.</span>{" "}
+              <em>Observed-versus-predicted class counts for the drinking classifier.</em>
+            </figcaption>
+          </figure>
+        </div>
+        <p>{confusionInterpretation.smoking}</p>
+        <p>{confusionInterpretation.drinking}</p>
 
-          <article class="notes-card">
-            <h3>How to interpret the model results</h3>
-            <ul class="note-list">
-              {modelContextNotes.map((note) => <li>{note}</li>)}
-            </ul>
-          </article>
-        </section>
+        <h3>5.4 Model limitations</h3>
+        {modelLimitations.map((paragraph) => <p>{paragraph}</p>)}
+      </section>
 
-        <section id="dashboard" class="section">
-          <SectionHeading
-            kicker="Dashboard"
-            title="Interactive dashboard and performance snapshot"
-            intro="Use the embedded report to explore multiple views of the project without leaving the site."
-          />
+      <section id="dashboard" class="section">
+        <h2>6. Interactive Dashboard</h2>
+        <p>{dashboardParagraph}</p>
+        <DashboardEmbed />
+      </section>
 
-          <DashboardEmbed />
+      <section id="explorer" class="section">
+        <h2>7. Prediction Explorer</h2>
+        <p>
+          The prediction explorer presents representative clinical profiles and, when supported by a
+          server environment, allows direct submission of individual profiles for probabilistic
+          classification. The section is intended to demonstrate how the trained models behave when
+          applied to concrete combinations of anthropometric, metabolic, and hepatic indicators.
+        </p>
+        <ModelPlayground defaults={siteData.models.playgroundDefaults} />
+      </section>
 
-          <div class="metric-grid">
-            <MetricCard
-              label="Smoking accuracy"
-              value={`${(latestSmoking.accuracy * 100).toFixed(1)}%`}
-              note="current monitored model"
-            />
-            <MetricCard
-              label="Drinking accuracy"
-              value={`${(latestDrinking.accuracy * 100).toFixed(1)}%`}
-              note="current monitored model"
-            />
-            <MetricCard
-              label="Refresh cadence"
-              value={formatSchedule(siteData.project.schedulerJobs[0]?.schedule)}
-              note={siteData.project.schedulerJobs[0]?.state ?? "ENABLED"}
-            />
-            <MetricCard
-              label="Tracked models"
-              value={String(siteData.cloudPipeline.promotions.length)}
-              note="current monitoring entries"
-            />
-          </div>
+      <section id="conclusions" class="section">
+        <h2>8. Conclusions</h2>
+        {conclusionParagraphs.map((paragraph, index) => (
+          <p class={index === 0 ? "lead-paragraph" : undefined}>{paragraph}</p>
+        ))}
+      </section>
 
-          <article class="notes-card">
-            <h3>Ways to use the dashboard</h3>
-            <ul class="note-list">
-              {dashboardNotes.map((note) => <li>{note}</li>)}
-            </ul>
-          </article>
-        </section>
-
-        <section id="playground" class="section">
-          <SectionHeading
-            kicker="Prediction Explorer"
-            title="Compare individual profiles"
-            intro="Use the sample population for a quick side-by-side view, with an expanded profile form available in the full live experience."
-          />
-
-          <ModelPlayground defaults={siteData.models.playgroundDefaults} />
-        </section>
-
-        <section id="references" class="section">
-          <SectionHeading
-            kicker="References"
-            title="Research and source material"
-            intro="Selected research and source material that support the patterns and modeling choices presented throughout the site."
-          />
-
-          <div class="references-list">
-            {references.map((reference) => <p>{reference}</p>)}
-          </div>
-        </section>
-      </div>
-    </div>
-  </main>
+      <section id="references" class="section">
+        <h2>9. References</h2>
+        <ol class="reference-list">
+          {references.map((reference) => (
+            <li set:html={reference}></li>
+          ))}
+        </ol>
+      </section>
+    </main>
+  </div>
 
   <footer class="site-footer">
     <p>
-      Smoking and Drinking Prediction: an interactive view of health patterns, predictive signals,
-      and dashboard reporting.
+      Predicting Smoking and Alcohol Consumption Behaviors Through Biometric Indicators: A Machine
+      Learning Approach on National Health Data.
     </p>
-    <p>Snapshot generated on {new Date(siteData.generatedAt).toLocaleString()}.</p>
+    <p>
+      Applied research project website, April 2026. This site is intended for academic
+      interpretation and demonstration purposes and should not be used as a clinical diagnostic
+      tool.
+    </p>
   </footer>
 </BaseLayout>

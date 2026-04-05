@@ -15,15 +15,13 @@ const { title, labels, matrix, labelMap = {} } = Astro.props;
 const maxValue = Math.max(...matrix.flatMap((row) => Object.values(row.values)));
 ---
 
-<article class="chart-card">
-  <div class="chart-head">
-    <h3>{title}</h3>
-  </div>
+<article class="figure-panel">
+  <p class="figure-panel-title">{title}</p>
   <div class="matrix-wrap">
     <table class="matrix-table">
       <thead>
         <tr>
-          <th>Expected \\ Predicted</th>
+          <th>Observed \\ Predicted</th>
           {labels.map((label) => <th>{labelMap[label] ?? label}</th>)}
         </tr>
       </thead>
@@ -35,8 +33,8 @@ const maxValue = Math.max(...matrix.flatMap((row) => Object.values(row.values)))
               const value = row.values[label] ?? row.values[`_${label}`] ?? 0;
               const intensity = maxValue === 0 ? 0 : value / maxValue;
               return (
-                <td style={`background: rgba(var(--matrix-rgb), ${0.14 + intensity * 0.56})`}>
-                  {value.toLocaleString()}
+                <td style={`background-color: rgba(26, 58, 92, ${0.08 + intensity * 0.24})`}>
+                  {value.toLocaleString("en-US")}
                 </td>
               );
             })}

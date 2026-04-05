@@ -14,21 +14,21 @@ const { title, rows } = Astro.props;
 const maxWeight = Math.max(...rows.map((row) => row.weight));
 ---
 
-<article class="chart-card">
-  <div class="chart-head">
-    <h3>{title}</h3>
-  </div>
+<article class="figure-panel">
+  <p class="figure-panel-title">{title}</p>
   <div class="bar-list">
     {rows.map((row) => {
       const width = maxWeight === 0 ? 0 : (row.weight / maxWeight) * 100;
       return (
         <div class="bar-row">
           <div class="bar-meta">
-            <span>{row.feature}</span>
-            <span>weight {row.weight.toLocaleString()} - gain {row.gain.toFixed(2)}</span>
+            <span class="bar-feature">{row.feature}</span>
+            <span class="bar-values">
+              split frequency {row.weight.toLocaleString("en-US")} | gain {row.gain.toFixed(2)}
+            </span>
           </div>
           <div class="bar-track">
-            <div class="bar-fill accent" style={`width:${width}%`}></div>
+            <div class="bar-fill" style={`width:${width}%`}></div>
           </div>
         </div>
       );

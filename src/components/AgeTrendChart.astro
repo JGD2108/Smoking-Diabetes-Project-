@@ -18,7 +18,7 @@ const width = 660;
 const height = 260;
 const paddingX = 46;
 const paddingY = 24;
-const palette = ["#0f766e", "#dc2626", "#1d4ed8", "#ea580c"];
+const palette = ["#1a3a5c", "#6b7a8c", "#94a3b8", "#4b5563"];
 
 const series = labels.map((label, index) => {
   const values = ages.map((age) => {
@@ -82,7 +82,7 @@ const series = labels.map((label, index) => {
       return (
         <>
           <line x1={paddingX} y1={y} x2={width - paddingX} y2={y} class="grid-line" />
-          <text x={paddingX - 10} y={y + 4} text-anchor="end" class="axis-label">{value.toLocaleString()}</text>
+          <text x={paddingX - 10} y={y + 4} text-anchor="end" class="axis-label">{value.toLocaleString("en-US")}</text>
         </>
       );
     })}
